@@ -1,0 +1,436 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Configurações (Mock)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "Baixar Vídeo Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar Vídeo Original": {
+      "main": [
+        [
+          {
+            "node": "Transcrever (WhisperX)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever (WhisperX)": {
+      "main": [
+        [
+          {
+            "node": "Preparar Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lote": {
+      "main": [
+        [
+          {
+            "node": "Loop: 1 por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: 1 por vez": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Gerar ASS Dinâmico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar ASS Dinâmico": {
+      "main": [
+        [
+          {
+            "node": "Reanexar Binário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reanexar Binário": {
+      "main": [
+        [
+          {
+            "node": "Renderizar Vídeo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar Vídeo": {
+      "main": [
+        [
+          {
+            "node": "Salvar no SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preservar Dados do Loop1": {
+      "main": [
+        []
+      ]
+    },
+    "Salvar no SeaweedFS": {
+      "main": [
+        [
+          {
+            "node": "Loop: 1 por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurações (Mock)": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-16T02:16:48.175Z",
+  "id": "RQnChWnA9K4ILQ7w",
+  "isArchived": false,
+  "meta": null,
+  "name": "My workflow 2",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        1728
+      ],
+      "id": "67cbfcbc-edef-4e7f-82a7-bdc8bd72bd41",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "jvNWAtmFpjrwGx3p",
+          "mode": "list",
+          "cachedResultName": "lyric_templates",
+          "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/jvNWAtmFpjrwGx3p"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": []
+        },
+        "limit": 5
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -624,
+        1728
+      ],
+      "id": "d93f05b8-06f8-4af5-9e1e-9e1ed7cc273e",
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "={{ $('Configurações (Mock)').item.json.video_key }}"
+      },
+      "id": "bceb18c3-7067-4a75-984c-6495bee4a5fc",
+      "name": "Baixar Vídeo Original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        1728
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "={{ $('Configurações (Mock)').item.json.language }}"
+            },
+            {
+              "name": "official_lyrics",
+              "value": "={{ $('Configurações (Mock)').item.json.official_lyrics }}"
+            },
+            {
+              "name": "display_mode",
+              "value": "={{ $('Configurações (Mock)').item.json.display_mode }}"
+            },
+            {
+              "name": "video_key",
+              "value": "={{ $('Configurações (Mock)').item.json.video_key }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7dac6f52-f88a-4827-8d6f-c7a2174a939f",
+      "name": "Transcrever (WhisperX)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const templates = $('Get row(s)').all().map(item => item.json);\nconst transcript = $('Transcrever (WhisperX)').first().json;\nconst config = $('Configurações (Mock)').first().json;\nconst filename = config.video_key || 'video_original.mp4';\n\nconst dataToSend = config.display_mode === 'segment' ? transcript.segments : transcript.words;\n\n\nreturn templates.map(template => {\n  return {\n    json: {\n      template_name: template.name || 'default',\n      template_json: JSON.stringify(template),\n      transcript_data: JSON.stringify(dataToSend),\n      original_filename: filename\n    }\n  };\n});"
+      },
+      "id": "060a8e5f-4c8a-415d-a501-8ef6e079e4dc",
+      "name": "Preparar Lote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        48,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9625f36c-b9de-42eb-bab5-069193533ce0",
+      "name": "Loop: 1 por vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        272,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/generate-ass/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "transcript_data",
+              "value": "={{ $json.transcript_data }}"
+            },
+            {
+              "name": "template",
+              "value": "{\n  \"mode\": \"preset\",\n  \"preset\": \"neon_lyrics\",\n  \"base\": {\n    \"name\": \"Meu Teste\",\n    \"font_size\": 68\n  }\n}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b739e37f-a56b-4d59-82e3-d428d62eb9e2",
+      "name": "Gerar ASS Dinâmico",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst videoBinary = $('Baixar Vídeo Original').first().binary;\n\nreturn {\n  json: item.json,\n  binary: videoBinary\n};"
+      },
+      "id": "0c19ee9f-1c8f-46a4-818e-2dc41cbbc60f",
+      "name": "Reanexar Binário",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/render/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "ass_content",
+              "value": "={{ $json.ass_content }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "611035fa-2ec3-4b05-947d-cfb14eab6a82",
+      "name": "Renderizar Vídeo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        928,
+        1744
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const loopData = $('Loop: 1 por vez').item.json;\nconst renderOutput = $input.first().json;\nconst binaryData = $input.first().binary;\n\nreturn {\n  json: {\n    ...loopData,\n    render_status: 'success',\n    s3_filename: `${loopData.template_name}_${loopData.original_filename}`\n  },\n  binary: binaryData\n};"
+      },
+      "id": "9d988f2f-9177-43b5-8df4-780e2fe99569",
+      "name": "Preservar Dados do Loop1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ $execution.id }}_{{ $('Configurações (Mock)').item.json.video_key }}",
+        "additionalFields": {}
+      },
+      "id": "21b7fcee-b231-4c7f-a9e4-2a9defa465fa",
+      "name": "Salvar no SeaweedFS",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        1744
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "display_mode",
+              "value": "segment",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "official_lyrics",
+              "value": "Mas depois \\n\nque a boca \\n \ntoca o vício \\n \nDesbeijar \nnão adianta \nde nada \\n \nSe o corpo \\n \ntem magnetismo \\n \nAtração \\n \nnão vê \\n \nescolha errada \\n \nTem cheiro \\n \nque agarra, \\n \nsuor que afoga \\n  \nOlhar que \\n \nnão solta, \\n \ntiro que \\n \nnão mata \\n \nGosto que \\n \nsufoca Gruda \\n \nna memória \\n \nCama bagunçada \\n \nMal vai embora \\n \ne já me \\n \nfaz falta \\n \nSe seu beijo \\n \né veneno \\n \nVou te beber \\n \ncom limão \\n \ne gêlo \\n \nSe sua cama \\n \né prisão \\n \nEssa madrugada \\n \neu quero \\n \ndormir preso \\n \nSe seu beijo \\n \né veneno \\n \nVou te beber \\n \ncom limão \\n \ne gêlo \\n \nSe você for \\n \num errro \\n \nQuero errar \\n \ncom seu \\n \ncorpo inteiro \\n ",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "video_key",
+              "value": "video_original.mp4",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "language",
+              "value": "pt",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "39d7e4e2-ca41-4776-b999-a208b56c2474",
+      "name": "Configurações (Mock)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -848,
+        1728
+      ]
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "https://github.com/Rafael-Honorato/n8n-automacoes-videos",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "RQnChWnA9K4ILQ7w",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-16T02:16:48.181Z",
+      "updatedAt": "2026-10-16T02:16:48.181Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-10-17T00:55:33.923Z",
+  "versionId": "33963641-406e-4739-9971-1e33a0a922e5"
+}
