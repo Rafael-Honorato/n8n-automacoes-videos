@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "21010c10-fb26-46f2-ac97-f82ad72537ba",
+    "versionId": "36985229-249d-41b9-aba5-bb6586b37fed",
     "workflowId": "ysAaoZMr8BKHQZdC",
     "nodes": [
       {
@@ -287,14 +287,16 @@
           656,
           -128
         ],
-        "typeVersion": 3
+        "typeVersion": 3,
+        "retryOnFail": true,
+        "onError": "continueRegularOutput"
       },
       {
         "parameters": {
           "rule": {
             "interval": [
               {
-                "triggerAtHour": 1,
+                "field": "hours",
                 "triggerAtMinute": 33
               }
             ]
@@ -353,7 +355,9 @@
         "parameters": {
           "workflowId": "={{ $workflow.id }}",
           "mode": "each",
-          "options": {}
+          "options": {
+            "waitForSubWorkflow": true
+          }
         },
         "id": "e562a207-c935-499a-9864-5e2422368e57",
         "name": "Execute Workflow",
@@ -591,14 +595,14 @@
       },
       "Execute Workflow": {
         "main": [
-          [],
           [
             {
               "node": "Loop Over Items",
               "type": "main",
               "index": 0
             }
-          ]
+          ],
+          []
         ]
       },
       "Schedule Trigger": {
@@ -699,13 +703,13 @@
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 21010c10",
+    "name": "Version 36985229",
     "description": "",
     "autosaved": true,
-    "createdAt": "2026-10-17T18:20:09.553Z",
-    "updatedAt": "2026-10-17T18:21:33.000Z"
+    "createdAt": "2026-10-17T18:31:09.064Z",
+    "updatedAt": "2026-10-17T18:31:17.000Z"
   },
-  "activeVersionId": "21010c10-fb26-46f2-ac97-f82ad72537ba",
+  "activeVersionId": "36985229-249d-41b9-aba5-bb6586b37fed",
   "connections": {
     "Config": {
       "main": [
@@ -1246,7 +1250,7 @@
         "rule": {
           "interval": [
             {
-              "triggerAtHour": 1,
+              "field": "hours",
               "triggerAtMinute": 33
             }
           ]
@@ -1882,6 +1886,6 @@
   },
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-17T18:30:29.262Z",
-  "versionId": "2c2e0ae1-dbc1-4134-9014-5b4cda83da56"
+  "updatedAt": "2026-10-17T18:31:09.057Z",
+  "versionId": "36985229-249d-41b9-aba5-bb6586b37fed"
 }
