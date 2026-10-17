@@ -1,0 +1,420 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Baixar Vídeo Original": {
+      "main": [
+        [
+          {
+            "node": "Transcrever (WhisperX)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Legenda .ASS1": {
+      "main": [
+        [
+          {
+            "node": "Renderizar Vídeo Final1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar Vídeo Final1": {
+      "main": [
+        [
+          {
+            "node": "Salvar no SeaweedFS1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Baixar Vídeo Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever (WhisperX)1": {
+      "main": [
+        [
+          {
+            "node": "Gerar Legenda .ASS1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Principal": {
+      "main": [
+        [
+          {
+            "node": "Baixar Vídeo Original1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever (WhisperX)": {
+      "main": [
+        [
+          {
+            "node": "Chamar Template Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chamar Template Engine": {
+      "main": [
+        [
+          {
+            "node": "Renderizar Vídeo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar Vídeo": {
+      "main": [
+        [
+          {
+            "node": "Salvar no SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar Vídeo Original1": {
+      "main": [
+        [
+          {
+            "node": "Transcrever (WhisperX)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-15T19:38:01.495Z",
+  "id": "45n9S2LnasovVwyC",
+  "isArchived": true,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "My workflow",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "video_original.mp4"
+      },
+      "id": "3dff5596-f96a-45de-b97f-00419ad5da71",
+      "name": "Baixar Vídeo Original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        368
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const WORDS_PER_GROUP = 3;\nconst MAX_CHARS_PER_LINE = 22;\nconst HIGHLIGHT_COLOR = \"&H00FFFF&\"; // Amarelo no ASS (BGR invertido)\nconst BASE_COLOR = \"&H00FFFFFF&\";   // Branco\n\nconst items = $input.all();\nconst sourceItems = $('Baixar Vídeo Original').all();\nconst results = [];\n\nfunction formatTime(seconds) {\n  const h = Math.floor(seconds / 3600);\n  const m = Math.floor((seconds % 3600) / 60);\n  const s = Math.floor(seconds % 60);\n  const c = Math.round((seconds % 1) * 100);\n  return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${c.toString().padStart(2, '0')}`;\n}\n\nfunction smartBreak(text, maxLen) {\n  if (text.length <= maxLen) return text;\n  const words = text.split(' ');\n  const mid = Math.ceil(words.length / 2);\n  return `${words.slice(0, mid).join(' ')}\\\\N${words.slice(mid).join(' ')}`;\n}\n\n// Aplica cores: primeira palavra do grupo em destaque, resto em branco\nfunction applyHighlight(words) {\n  return words.map((w, idx) => {\n    const color = idx === 0 ? HIGHLIGHT_COLOR : BASE_COLOR;\n    // Tag de estilo inline + palavra + reset de estilo\n    return `{\\\\c${color}\\\\b1}${w.word}{\\\\r}`;\n  }).join(' ');\n}\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const source = sourceItems[i] ?? sourceItems[0];\n\n  if (!source?.binary?.data) {\n    throw new Error('Binário \"data\" não encontrado.');\n  }\n\n  let words = item.json.words;\n  if (!Array.isArray(words) || words.length === 0) {\n    throw new Error('Array \"words\" vazio.');\n  }\n\n  words.sort((a, b) => a.start - b.start);\n\n  // CABEÇALHO ASS COM ESTILO MODERNO\n  let assContent = `[Script Info]\nTitle: Viral Lyrics by n8n\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Roboto,80,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,2,0,1,4,3,2,30,30,200,1\nStyle: Highlight,Roboto,80,&H00FFFF00,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,2,0,1,4,3,2,30,30,200,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;\n\n  for (let j = 0; j < words.length; j += WORDS_PER_GROUP) {\n    const group = words.slice(j, j + WORDS_PER_GROUP);\n    \n    let start = group[0].start;\n    let end = group[group.length - 1].end;\n    if (start >= end) end = start + 0.6;\n\n    const startStr = formatTime(start);\n    const endStr = formatTime(end);\n    \n    const rawText = group.map(w => w.word).join(' ');\n    const brokenText = smartBreak(rawText, MAX_CHARS_PER_LINE);\n    \n    // Aplica destaque colorido\n    const highlightedText = applyHighlight(group);\n    \n    // Adiciona emoji temático baseado no conteúdo (opcional)\n    let emoji = '';\n    const textLower = rawText.toLowerCase();\n    if (textLower.includes('beijo') || textLower.includes('boca')) emoji = '💋 ';\n    else if (textLower.includes('veneno')) emoji = '🐍 ';\n    else if (textLower.includes('cama')) emoji = '🛏️ ';\n    else if (textLower.includes('fogo') || textLower.includes('fogo')) emoji = '🔥 ';\n    \n    const finalText = `${emoji}${highlightedText}`;\n    \n    assContent += `Dialogue: 0,${startStr},${endStr},Default,,0,0,0,,${finalText}\\n`;\n  }\n\n  results.push({\n    json: { assContent, fileName: 'lyrics.ass' },\n    binary: source.binary\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        368
+      ],
+      "id": "6407018f-f2cd-4182-8719-d0f6c80371a9",
+      "name": "Gerar Legenda .ASS1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/render/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "ass_content",
+              "value": "={{ $json.assContent }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        496,
+        368
+      ],
+      "id": "efc319f4-44f3-4184-8c71-e14581d86f2c",
+      "name": "Renderizar Vídeo Final1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        368
+      ],
+      "id": "1794cfc1-3758-494e-9895-a4aedf0bc740",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "pt"
+            },
+            {
+              "name": "official_lyrics",
+              "value": "Mas depois que a boca toca o vício Desbeijar não adianta de nada Se o corpo tem magnetismo Atração não vê escolha errada Tem cheiro que agarra, suor que afoga Olhar que não solta, tiro que não mata Gosto que sufoca, gruda na memória Cama bagunçada Mal vai embora e já me faz falta Se seu beijo é veneno Vou te beber com limão e gelo Se sua cama é prisão Essa madrugada eu quero dormir preso Se seu beijo é veneno Vou te beber com limão e gelo Se você for um erro Quero errar com seu corpo inteiro"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10761116-0b5e-41e5-b7cd-e754730d25be",
+      "name": "Transcrever (WhisperX)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        96,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        720,
+        368
+      ],
+      "id": "3728ca4a-5eaa-48d4-8670-a69ffd929edd",
+      "name": "Salvar no SeaweedFS1",
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lyrics-factory",
+        "options": {}
+      },
+      "id": "ed9216ad-bc54-4be6-a114-b6f19ae5e692",
+      "name": "Webhook Principal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        144
+      ],
+      "webhookId": "c58fda75-7f87-4b1b-8f0d-da61abca2596"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "={{ $json.body.language || 'pt' }}"
+            },
+            {
+              "name": "official_lyrics",
+              "value": "={{ $json.body.official_lyrics }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "760a4ad2-f5eb-4895-8f4d-965a3994b5e1",
+      "name": "Transcrever (WhisperX)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        80,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gk9UQqKY7Nz5UOE9",
+          "cachedResultName": "Lyrics Factory - ASS Generator"
+        },
+        "options": {}
+      },
+      "id": "880c2e84-f111-40da-b6ce-01c4fe6e70d3",
+      "name": "Chamar Template Engine",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        304,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/render/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "ass_content",
+              "value": "={{ $json.assContent }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {}
+        }
+      },
+      "id": "98148370-537d-4960-bc69-7dc68c003cc8",
+      "name": "Renderizar Vídeo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        512,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "video_original.mp4"
+      },
+      "id": "d3eabd0b-9e83-40e5-85c7-b2b15199c8cd",
+      "name": "Baixar Vídeo Original1",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -128,
+        144
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        720,
+        144
+      ],
+      "id": "b94a1fb3-c984-4bb3-8156-8c6de38ce5cd",
+      "name": "Salvar no SeaweedFS",
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "45n9S2LnasovVwyC",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-15T19:38:01.500Z",
+      "updatedAt": "2026-10-15T19:38:01.500Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-10-15T20:02:39.000Z",
+  "versionId": "5197ac5c-9710-4d88-ada9-67c4c81f92ac"
+}
