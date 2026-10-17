@@ -1,0 +1,272 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Baixar Vídeo Original": {
+      "main": [
+        [
+          {
+            "node": "Transcrever (WhisperX)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever (WhisperX)": {
+      "main": [
+        [
+          {
+            "node": "trasncript .ass",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Legenda .ASS1": {
+      "main": [
+        []
+      ]
+    },
+    "Renderizar Vídeo Final1": {
+      "main": [
+        [
+          {
+            "node": "Salvar no SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Baixar Vídeo Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "trasncript .ass": {
+      "main": [
+        [
+          {
+            "node": "Unir Dados e Binário1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unir Dados e Binário1": {
+      "main": [
+        [
+          {
+            "node": "Renderizar Vídeo Final1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-14T22:00:53.419Z",
+  "id": "tOEu5v2dKNJH79Bw",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "🤖 Fábrica de Lyrics: S3 -> WhisperX -> Render -> S3",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "video_original.mp4"
+      },
+      "id": "8828b7a1-e066-47f2-9c0c-d98bc790ae95",
+      "name": "Baixar Vídeo Original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        160,
+        16
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "pt"
+            },
+            {
+              "name": "official_lyrics",
+              "value": "Mas depois que a boca toca o vício Desbeijar não adianta de nada Se o corpo tem magnetismo Atração não vê escolha errada Tem cheiro que agarra, suor que afoga Olhar que não solta, tiro que não mata Gosto que sufoca, gruda na memória Cama bagunçada Mal vai embora e já me faz falta Se seu beijo é veneno Vou te beber com limão e gelo Se sua cama é prisão Essa madrugada eu quero dormir preso Se seu beijo é veneno Vou te beber com limão e gelo Se você for um erro Quero errar com seu corpo inteiro"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3b3f84cc-7615-4946-a862-4f9a86210730",
+      "name": "Transcrever (WhisperX)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        384,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        16
+      ],
+      "id": "254ec027-c0d6-49df-9c2c-ff38d80da938",
+      "name": "Salvar no SeaweedFS",
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const WORDS_PER_GROUP = 3;\nconst MAX_CHARS_PER_LINE = 22;\nconst HIGHLIGHT_COLOR = \"&H00FFFF&\"; // Amarelo no ASS (BGR invertido)\nconst BASE_COLOR = \"&H00FFFFFF&\";   // Branco\n\nconst items = $input.all();\nconst sourceItems = $('Baixar Vídeo Original').all();\nconst results = [];\n\nfunction formatTime(seconds) {\n  const h = Math.floor(seconds / 3600);\n  const m = Math.floor((seconds % 3600) / 60);\n  const s = Math.floor(seconds % 60);\n  const c = Math.round((seconds % 1) * 100);\n  return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${c.toString().padStart(2, '0')}`;\n}\n\nfunction smartBreak(text, maxLen) {\n  if (text.length <= maxLen) return text;\n  const words = text.split(' ');\n  const mid = Math.ceil(words.length / 2);\n  return `${words.slice(0, mid).join(' ')}\\\\N${words.slice(mid).join(' ')}`;\n}\n\n// Aplica cores: primeira palavra do grupo em destaque, resto em branco\nfunction applyHighlight(words) {\n  return words.map((w, idx) => {\n    const color = idx === 0 ? HIGHLIGHT_COLOR : BASE_COLOR;\n    // Tag de estilo inline + palavra + reset de estilo\n    return `{\\\\c${color}\\\\b1}${w.word}{\\\\r}`;\n  }).join(' ');\n}\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const source = sourceItems[i] ?? sourceItems[0];\n\n  if (!source?.binary?.data) {\n    throw new Error('Binário \"data\" não encontrado.');\n  }\n\n  let words = item.json.words;\n  if (!Array.isArray(words) || words.length === 0) {\n    throw new Error('Array \"words\" vazio.');\n  }\n\n  words.sort((a, b) => a.start - b.start);\n\n  // CABEÇALHO ASS COM ESTILO MODERNO\n  let assContent = `[Script Info]\nTitle: Viral Lyrics by n8n\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\nStyle: Default,Roboto,80,&H00FFFFFF,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,2,0,1,4,3,2,30,30,200,1\nStyle: Highlight,Roboto,80,&H00FFFF00,&H000000FF,&H00000000,&H80000000,1,0,0,0,100,100,2,0,1,4,3,2,30,30,200,1\n\n[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n`;\n\n  for (let j = 0; j < words.length; j += WORDS_PER_GROUP) {\n    const group = words.slice(j, j + WORDS_PER_GROUP);\n    \n    let start = group[0].start;\n    let end = group[group.length - 1].end;\n    if (start >= end) end = start + 0.6;\n\n    const startStr = formatTime(start);\n    const endStr = formatTime(end);\n    \n    const rawText = group.map(w => w.word).join(' ');\n    const brokenText = smartBreak(rawText, MAX_CHARS_PER_LINE);\n    \n    // Aplica destaque colorido\n    const highlightedText = applyHighlight(group);\n    \n    // Adiciona emoji temático baseado no conteúdo (opcional)\n    let emoji = '';\n    const textLower = rawText.toLowerCase();\n    if (textLower.includes('beijo') || textLower.includes('boca')) emoji = '💋 ';\n    else if (textLower.includes('veneno')) emoji = '🐍 ';\n    else if (textLower.includes('cama')) emoji = '🛏️ ';\n    else if (textLower.includes('fogo') || textLower.includes('fogo')) emoji = '🔥 ';\n    \n    const finalText = `${emoji}${highlightedText}`;\n    \n    assContent += `Dialogue: 0,${startStr},${endStr},Default,,0,0,0,,${finalText}\\n`;\n  }\n\n  results.push({\n    json: { assContent, fileName: 'lyrics.ass' },\n    binary: source.binary\n  });\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        -208
+      ],
+      "id": "e9e1d5f0-18a6-4189-b2d5-167eb6430bf6",
+      "name": "Gerar Legenda .ASS1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/render/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "ass_content",
+              "value": "={{ $json.assContent }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1056,
+        16
+      ],
+      "id": "db493a7b-03d7-42f2-b33e-6e7fbcce08f3",
+      "name": "Renderizar Vídeo Final1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        16
+      ],
+      "id": "09eb6fbc-6b30-402a-b5d8-496c74760ace",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "gk9UQqKY7Nz5UOE9",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/gk9UQqKY7Nz5UOE9",
+          "cachedResultName": "Lyrics Factory - ASS Generator"
+        },
+        "options": {}
+      },
+      "id": "e08f6a4c-75de-46d2-822a-d47237c219d9",
+      "name": "trasncript .ass",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// SOLUÇÃO PARA DADOS BINÁRIOS: Em vez de usar Merge, pegamos o binário \n// do nó de download e o anexamos ao resultado do sub-workflow.\n\nconst assResult = $input.first().json; // { assContent: \"...\" }\nconst videoBinary = $('Baixar Vídeo Original').first().binary; // { data: {...} }\n\nreturn {\n  json: assResult,\n  binary: videoBinary\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        16
+      ],
+      "id": "7f371dc3-9b4d-449e-8b4f-ff55b078eb03",
+      "name": "Unir Dados e Binário1"
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "tOEu5v2dKNJH79Bw",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-14T22:00:53.449Z",
+      "updatedAt": "2026-10-14T22:00:53.449Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-10-15T20:03:49.856Z",
+  "versionId": "2c9db9fe-d7ae-49d0-a410-ba286330ae0a"
+}
