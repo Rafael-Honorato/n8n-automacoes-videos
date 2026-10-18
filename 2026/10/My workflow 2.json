@@ -85,7 +85,7 @@
       "main": [
         [
           {
-            "node": "Renderizar Vídeo",
+            "node": "Renderizar com HyperFrames",
             "type": "main",
             "index": 0
           }
@@ -101,11 +101,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Preservar Dados do Loop1": {
-      "main": [
-        []
       ]
     },
     "Salvar no SeaweedFS": {
@@ -124,6 +119,17 @@
         [
           {
             "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar com HyperFrames": {
+      "main": [
+        [
+          {
+            "node": "Renderizar Vídeo",
             "type": "main",
             "index": 0
           }
@@ -238,7 +244,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const templates = $('Get row(s)').all().map(item => item.json);\nconst transcript = $('Transcrever (WhisperX)').first().json;\nconst config = $('Configurações (Mock)').first().json;\nconst filename = config.video_key || 'video_original.mp4';\n\nconst dataToSend = config.display_mode === 'segment' ? transcript.segments : transcript.words;\n\n\nreturn templates.map(template => {\n  return {\n    json: {\n      template_name: template.name || 'default',\n      template_json: JSON.stringify(template),\n      transcript_data: JSON.stringify(dataToSend),\n      original_filename: filename\n    }\n  };\n});"
+        "jsCode": "const templates = $('Get row(s)').all().map(item => item.json);\nconst transcript = $input.first().json;\nconst filename = $('Baixar Vídeo Original').first().json.fileName || 'video_original.mp4';\n\n// Calcula a duração total baseada na última palavra + 1 segundo de margem\nconst words = transcript.words || [];\nconst lastWord = words[words.length - 1];\nconst duration = lastWord ? (lastWord.end + 1).toFixed(2) : 60;\n\nreturn templates.map(template => {\n  return {\n    json: {\n      template_name: template.name || 'default',\n      template_json: JSON.stringify(template),\n      transcript_data: JSON.stringify(words), // Garante que envia o array de palavras\n      original_filename: filename,\n      duration: duration // <-- NOVO CAMPO\n    }\n  };\n});"
       },
       "id": "060a8e5f-4c8a-415d-a501-8ef6e079e4dc",
       "name": "Preparar Lote",
@@ -330,21 +336,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        928,
+        1152,
         1744
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const loopData = $('Loop: 1 por vez').item.json;\nconst renderOutput = $input.first().json;\nconst binaryData = $input.first().binary;\n\nreturn {\n  json: {\n    ...loopData,\n    render_status: 'success',\n    s3_filename: `${loopData.template_name}_${loopData.original_filename}`\n  },\n  binary: binaryData\n};"
-      },
-      "id": "9d988f2f-9177-43b5-8df4-780e2fe99569",
-      "name": "Preservar Dados do Loop1",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1184,
-        1424
       ]
     },
     {
@@ -359,7 +352,7 @@
       "type": "n8n-nodes-base.s3",
       "typeVersion": 1,
       "position": [
-        1216,
+        1440,
         1744
       ],
       "credentials": {
@@ -409,6 +402,44 @@
         -848,
         1728
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hyperframes:3002/render",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "template",
+              "value": "lyrics.html"
+            },
+            {
+              "name": "data",
+              "value": "={{ $('Preparar Lote').item.json.transcript_data }}"
+            },
+            {
+              "name": "duration",
+              "value": "={{ $('Preparar Lote').item.json.duration }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        928,
+        1744
+      ],
+      "id": "bb4d4879-1371-4e76-a75c-53e7c37373f3",
+      "name": "Renderizar com HyperFrames"
     }
   ],
   "pinData": {},
@@ -431,6 +462,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-10-17T00:55:33.923Z",
-  "versionId": "33963641-406e-4739-9971-1e33a0a922e5"
+  "updatedAt": "2026-10-18T16:30:52.422Z",
+  "versionId": "eeeb5a22-78b1-4cdc-8917-ab7c5c69f6de"
 }
