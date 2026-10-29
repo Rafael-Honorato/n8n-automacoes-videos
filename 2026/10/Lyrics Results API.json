@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "1ec2e4da-14e9-48b6-b631-d55da9297286",
+    "versionId": "694d16c8-76a6-421d-82e9-25c0240aa379",
     "workflowId": "NCmEoD0HPcI11PRF",
     "nodes": [
       {
@@ -43,7 +43,8 @@
           16
         ],
         "id": "55fb92d2-f3d5-48c8-813f-346d5349a833",
-        "name": "Buscar Resultados"
+        "name": "Buscar Resultados",
+        "alwaysOutputData": true
       },
       {
         "parameters": {
@@ -86,6 +87,17 @@
         ],
         "id": "ca451a07-3a1c-4aa4-b1cf-42fd57fc4ec0",
         "name": "Responder"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -352,
+          -144
+        ],
+        "id": "f9d02d3e-63c9-44da-9dab-7512fe913bed",
+        "name": "When clicking ‘Execute workflow’"
       }
     ],
     "connections": {
@@ -121,17 +133,28 @@
             }
           ]
         ]
+      },
+      "When clicking ‘Execute workflow’": {
+        "main": [
+          [
+            {
+              "node": "Buscar Resultados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 1ec2e4da",
+    "name": "Version 694d16c8",
     "description": "",
-    "autosaved": false,
-    "createdAt": "2026-10-28T20:35:50.194Z",
-    "updatedAt": "2026-10-28T20:35:52.000Z"
+    "autosaved": true,
+    "createdAt": "2026-10-29T22:01:51.879Z",
+    "updatedAt": "2026-10-29T22:02:03.000Z"
   },
-  "activeVersionId": "1ec2e4da-14e9-48b6-b631-d55da9297286",
+  "activeVersionId": "694d16c8-76a6-421d-82e9-25c0240aa379",
   "connections": {
     "Webhook — Resultados": {
       "main": [
@@ -160,6 +183,17 @@
         [
           {
             "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Buscar Resultados",
             "type": "main",
             "index": 0
           }
@@ -213,7 +247,8 @@
         16
       ],
       "id": "55fb92d2-f3d5-48c8-813f-346d5349a833",
-      "name": "Buscar Resultados"
+      "name": "Buscar Resultados",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
@@ -256,6 +291,17 @@
       ],
       "id": "ca451a07-3a1c-4aa4-b1cf-42fd57fc4ec0",
       "name": "Responder"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -144
+      ],
+      "id": "f9d02d3e-63c9-44da-9dab-7512fe913bed",
+      "name": "When clicking ‘Execute workflow’"
     }
   ],
   "pinData": {},
@@ -279,6 +325,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T20:43:36.748Z",
-  "versionId": "1ec2e4da-14e9-48b6-b631-d55da9297286"
+  "updatedAt": "2026-10-29T22:01:51.877Z",
+  "versionId": "694d16c8-76a6-421d-82e9-25c0240aa379"
 }
