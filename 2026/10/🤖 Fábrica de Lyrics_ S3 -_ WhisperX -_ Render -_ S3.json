@@ -77,7 +77,7 @@
   },
   "createdAt": "2026-10-14T22:00:53.419Z",
   "id": "tOEu5v2dKNJH79Bw",
-  "isArchived": false,
+  "isArchived": true,
   "meta": {
     "templateCredsSetupCompleted": true
   },
@@ -253,7 +253,8 @@
   "repo_path": "",
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": true
   },
   "shared": [
     {
@@ -267,6 +268,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-10-15T20:03:49.856Z",
-  "versionId": "2c9db9fe-d7ae-49d0-a410-ba286330ae0a"
+  "updatedAt": "2026-10-29T20:44:01.000Z",
+  "versionId": "5c163454-db47-4bf0-a09f-2028d3c8104c"
 }
