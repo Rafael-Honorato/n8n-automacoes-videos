@@ -83,6 +83,17 @@
           }
         ]
       ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "createdAt": "2026-10-29T18:53:46.783Z",
@@ -100,7 +111,7 @@
           "item": [
             {
               "mode": "custom",
-              "cronExpression": "* /10 * * * *"
+              "cronExpression": "*/10 * * * *"
             }
           ]
         },
@@ -408,7 +419,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "video_id": "={{ $json.video_id }}",
-            "error": "={{ $execution.id }}"
+            "error": "=http://localhost:5678/workflow/{{$workflow.id}}/executions/{{ $execution.id }}"
           },
           "matchingColumns": [
             "video_id"
@@ -583,7 +594,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        240,
+        224,
         -48
       ],
       "id": "d0eebc81-9a57-43fd-a89a-e6d86de7d89a",
@@ -611,6 +622,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-10-29T21:32:37.900Z",
-  "versionId": "d1cfad20-1db9-49e2-8a94-c556732c0b62"
+  "updatedAt": "2026-10-29T21:40:40.682Z",
+  "versionId": "69d16304-c501-42d0-9740-e2d294195c12"
 }
