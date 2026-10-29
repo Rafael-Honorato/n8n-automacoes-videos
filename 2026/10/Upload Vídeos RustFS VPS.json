@@ -1,0 +1,84 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {},
+  "createdAt": "2026-10-29T18:53:46.783Z",
+  "id": "7pGgio9yWLTc3wbA",
+  "isArchived": false,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "name": "Upload Vídeos RustFS VPS",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "custom",
+              "cronExpression": "* /10 * * * *"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+          "mode": "list",
+          "cachedResultName": "N8N Controle de Postagens",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "11/2026",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit#gid=0"
+        },
+        "options": {
+          "columnsToWatch": [
+            "status"
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        -64
+      ],
+      "id": "048b8b5f-d4f9-493a-99d1-87d540ba5f98",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "elaTndlD0M94pXOS",
+          "name": "Google Sheets Trigger account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "7pGgio9yWLTc3wbA",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-29T18:53:46.789Z",
+      "updatedAt": "2026-10-29T18:53:46.789Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-10-29T20:43:31.287Z",
+  "versionId": "bf3e608f-4e6b-4548-91dc-6a8f7e5ccc69"
+}
