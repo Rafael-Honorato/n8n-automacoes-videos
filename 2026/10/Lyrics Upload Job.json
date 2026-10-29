@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "0198c2c6-34f7-4c27-bc00-9a0fabc8e3a2",
+    "versionId": "598fac55-cb14-4c94-9af0-2cfef0ae538b",
     "workflowId": "6UpxOdSjmtGxpq3g",
     "nodes": [
       {
@@ -122,8 +122,8 @@
         "name": "Listar Backgrounds",
         "credentials": {
           "s3": {
-            "id": "eu9IJ12z75eD0q98",
-            "name": "S3 account"
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
           }
         }
       },
@@ -229,21 +229,21 @@
         "parameters": {
           "operation": "upload",
           "bucketName": "lyrics",
-          "fileName": "={{ $('Reanexar Binário').item.json.s3_key }}",
+          "fileName": "={{ $json.video }}.mp4",
           "additionalFields": {}
         },
         "type": "n8n-nodes-base.s3",
         "typeVersion": 1,
         "position": [
-          1520,
+          1728,
           -112
         ],
         "id": "22e3c11e-c132-4b3b-93d4-a855e6564ab4",
         "name": "Salvar no SeaweedFS",
         "credentials": {
           "s3": {
-            "id": "eu9IJ12z75eD0q98",
-            "name": "S3 account"
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
           }
         },
         "onError": "continueErrorOutput"
@@ -255,7 +255,7 @@
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
-          1744,
+          1952,
           -112
         ],
         "id": "b7c7aba3-e57d-434c-83e6-09a54dc686fd",
@@ -505,7 +505,7 @@
         "type": "n8n-nodes-base.dataTable",
         "typeVersion": 1.1,
         "position": [
-          1984,
+          2192,
           -128
         ],
         "id": "5bbf870e-9a61-45dc-8b14-007c0a058419",
@@ -798,12 +798,12 @@
             "value": {
               "created_at": "={{ $json.updatedAt.toDateTime().format('dd/MM/yy HH:mm') }}",
               "uploaded_at": "=",
-              "video_id": "={{ $json.id }}",
-              "object_key": "={{ $json.original_filename }}",
+              "video_id": "={{ $('Crypto').item.json.video }}",
               "platform": "s3-local",
               "status": "generated",
               "file_size": "={{ $json.file_size_bytes }}",
-              "duration": "={{ $json.duration_seconds.toNumber().round(2) }}"
+              "duration": "={{ $json.duration_seconds.toNumber().round(2) }}",
+              "video_name": "={{ $('Crypto').item.json.video }}.mp4"
             },
             "matchingColumns": [
               "video_id"
@@ -820,8 +820,18 @@
                 "removed": false
               },
               {
-                "id": "object_key",
-                "displayName": "object_key",
+                "id": "video_name",
+                "displayName": "video_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "url",
+                "displayName": "url",
                 "required": false,
                 "defaultMatch": false,
                 "display": true,
@@ -938,8 +948,8 @@
         "type": "n8n-nodes-base.googleSheets",
         "typeVersion": 4.7,
         "position": [
-          2272,
-          -128
+          2384,
+          -112
         ],
         "id": "c7d33169-4e2e-40e3-a7d8-7a85e3b42189",
         "name": "Append row in sheet",
@@ -949,6 +959,20 @@
             "name": "Google Sheets account"
           }
         }
+      },
+      {
+        "parameters": {
+          "action": "generate",
+          "dataPropertyName": "video"
+        },
+        "type": "n8n-nodes-base.crypto",
+        "typeVersion": 2,
+        "position": [
+          1520,
+          -128
+        ],
+        "id": "69cc14fa-3efc-42f5-bcfe-ad83283c2c88",
+        "name": "Crypto"
       }
     ],
     "connections": {
@@ -1052,7 +1076,7 @@
         "main": [
           [
             {
-              "node": "Salvar no SeaweedFS",
+              "node": "Crypto",
               "type": "main",
               "index": 0
             }
@@ -1152,17 +1176,28 @@
             }
           ]
         ]
+      },
+      "Crypto": {
+        "main": [
+          [
+            {
+              "node": "Salvar no SeaweedFS",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 0198c2c6",
+    "name": "Version 598fac55",
     "description": "",
     "autosaved": true,
-    "createdAt": "2026-10-29T18:53:00.193Z",
-    "updatedAt": "2026-10-29T18:53:06.000Z"
+    "createdAt": "2026-10-29T22:24:12.622Z",
+    "updatedAt": "2026-10-29T22:26:51.000Z"
   },
-  "activeVersionId": "0198c2c6-34f7-4c27-bc00-9a0fabc8e3a2",
+  "activeVersionId": "598fac55-cb14-4c94-9af0-2cfef0ae538b",
   "connections": {
     "Webhook — Novo Job": {
       "main": [
@@ -1264,7 +1299,7 @@
       "main": [
         [
           {
-            "node": "Salvar no SeaweedFS",
+            "node": "Crypto",
             "type": "main",
             "index": 0
           }
@@ -1359,6 +1394,17 @@
         [
           {
             "node": "Loop: 1 por vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto": {
+      "main": [
+        [
+          {
+            "node": "Salvar no SeaweedFS",
             "type": "main",
             "index": 0
           }
@@ -1495,8 +1541,8 @@
       "name": "Listar Backgrounds",
       "credentials": {
         "s3": {
-          "id": "eu9IJ12z75eD0q98",
-          "name": "S3 account RustFS"
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
         }
       }
     },
@@ -1602,21 +1648,21 @@
       "parameters": {
         "operation": "upload",
         "bucketName": "lyrics",
-        "fileName": "={{ $('Reanexar Binário').item.json.s3_key }}",
+        "fileName": "={{ $json.video }}.mp4",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.s3",
       "typeVersion": 1,
       "position": [
-        1520,
+        1728,
         -112
       ],
       "id": "22e3c11e-c132-4b3b-93d4-a855e6564ab4",
       "name": "Salvar no SeaweedFS",
       "credentials": {
         "s3": {
-          "id": "eu9IJ12z75eD0q98",
-          "name": "S3 account RustFS"
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
         }
       },
       "onError": "continueErrorOutput"
@@ -1628,7 +1674,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1744,
+        1952,
         -112
       ],
       "id": "b7c7aba3-e57d-434c-83e6-09a54dc686fd",
@@ -1878,7 +1924,7 @@
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1.1,
       "position": [
-        1984,
+        2192,
         -128
       ],
       "id": "5bbf870e-9a61-45dc-8b14-007c0a058419",
@@ -2171,12 +2217,12 @@
           "value": {
             "created_at": "={{ $json.updatedAt.toDateTime().format('dd/MM/yy HH:mm') }}",
             "uploaded_at": "=",
-            "video_id": "={{ $json.id }}",
-            "object_key": "={{ $json.original_filename }}",
+            "video_id": "={{ $('Crypto').item.json.video }}",
             "platform": "s3-local",
             "status": "generated",
             "file_size": "={{ $json.file_size_bytes }}",
-            "duration": "={{ $json.duration_seconds.toNumber().round(2) }}"
+            "duration": "={{ $json.duration_seconds.toNumber().round(2) }}",
+            "video_name": "={{ $('Crypto').item.json.video }}.mp4"
           },
           "matchingColumns": [
             "video_id"
@@ -2193,8 +2239,18 @@
               "removed": false
             },
             {
-              "id": "object_key",
-              "displayName": "object_key",
+              "id": "video_name",
+              "displayName": "video_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -2311,8 +2367,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2240,
-        -128
+        2384,
+        -112
       ],
       "id": "c7d33169-4e2e-40e3-a7d8-7a85e3b42189",
       "name": "Append row in sheet",
@@ -2322,50 +2378,23 @@
           "name": "Google Sheets account"
         }
       }
+    },
+    {
+      "parameters": {
+        "action": "generate",
+        "dataPropertyName": "video"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        -128
+      ],
+      "id": "69cc14fa-3efc-42f5-bcfe-ad83283c2c88",
+      "name": "Crypto"
     }
   ],
-  "pinData": {
-    "Webhook — Novo Job": [
-      {
-        "json": {
-          "headers": {
-            "host": "localhost:5678",
-            "user-agent": "curl/8.21.0",
-            "accept": "*/*",
-            "content-length": "1454455",
-            "content-type": "multipart/form-data; boundary=------------------------PclZbcD98um1hKkptgenry",
-            "expect": "100-continue"
-          },
-          "params": {},
-          "query": {},
-          "body": {
-            "official_lyrics": "",
-            "templates": "[\"user-teste-integracao.html\"]",
-            "background_mode": "source",
-            "language": "pt",
-            "segmentation_mode": "lyrics"
-          },
-          "webhookUrl": "http://localhost:5678/webhook/lyrics-job",
-          "executionMode": "production"
-        },
-        "binary": {
-          "video": {
-            "mimeType": "video/mp4",
-            "fileType": "video",
-            "fileExtension": "mp4",
-            "data": "filesystem-v2",
-            "fileName": "test-song-8s.mp4",
-            "id": "filesystem-v2:workflows/6UpxOdSjmtGxpq3g/executions/2633/binary_data/8735df76-967a-4f66-b310-16b71529b4a7",
-            "fileSize": "1.45 MB",
-            "bytes": 1453666
-          }
-        },
-        "pairedItem": {
-          "item": 0
-        }
-      }
-    ]
-  },
+  "pinData": {},
   "repo_name": "n8n-automacoes-videos",
   "repo_owner": "Rafael-Honorato",
   "repo_path": "",
@@ -2386,6 +2415,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T21:00:11.229Z",
-  "versionId": "82c14f56-3ab0-4631-8963-a3e343915e2a"
+  "updatedAt": "2026-10-29T22:30:45.180Z",
+  "versionId": "598fac55-cb14-4c94-9af0-2cfef0ae538b"
 }
