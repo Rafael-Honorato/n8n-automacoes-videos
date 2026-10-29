@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "598fac55-cb14-4c94-9af0-2cfef0ae538b",
+    "versionId": "1f1a6687-6307-4ae9-802b-1e875fa58b48",
     "workflowId": "6UpxOdSjmtGxpq3g",
     "nodes": [
       {
@@ -147,7 +147,7 @@
         "type": "n8n-nodes-base.splitInBatches",
         "typeVersion": 3,
         "position": [
-          864,
+          880,
           -112
         ],
         "id": "4643fd42-82c8-4e95-92b7-1ff0a8384470",
@@ -250,13 +250,13 @@
       },
       {
         "parameters": {
-          "jsCode": "const base = $('Reanexar Binário').item.json;\nconst binary = $('Renderizar com HyperFrames').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nconst baseUrl = String(\n  base.s3_public_base_url || 'http://localhost:8333',\n).replace(/\\/+$/, '');\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\n\nreturn {\n  json: {\n    execution_id: executionId,\n    execution_url: workflowId\n      ? 'http://localhost:5678/workflow/' +\n        workflowId +\n        '/executions/' +\n        executionId\n      : '',\n    run_index: String(base.run_index ?? ''),\n    background_file: base.background_file || '',\n    template_file: base.template_file || '',\n    template_name: base.template_name || '',\n    original_filename: base.original_filename || '',\n    source_video_key: base.source_video_key || '',\n    bucket,\n    s3_key: base.s3_key || '',\n    video_url: base.s3_key ? baseUrl + '/' + bucket + '/' + base.s3_key : '',\n    file_size_bytes: String(fileData.fileSize ?? ''),\n    duration_seconds: String(base.duration ?? ''),\n    word_count: String(base.word_count ?? ''),\n    status: 'success',\n    render_started_at: startedAt,\n    render_finished_at: finishedAt,\n    render_seconds: Number.isFinite(startedMs)\n      ? ((finishedMs - startedMs) / 1000).toFixed(2)\n      : '',\n    job_started_at: base.job_started_at || '',\n    job_finished_at: finishedAt,\n    language: base.language || '',\n    segmentation_mode: base.segmentation_mode || '',\n  },\n};"
+          "jsCode": "const base = $('Reanexar Binário').item.json;\nconst binary = $('Renderizar com HyperFrames').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nconst baseUrl = String(\n  base.s3_public_base_url || 'http://localhost:8333',\n).replace(/\\/+$/, '');\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\n\nreturn {\n  json: {\n    execution_id: executionId,\n    execution_url: workflowId\n      ? 'http://localhost:5678/workflow/' +\n        workflowId +\n        '/executions/' +\n        executionId\n      : '',\n    run_index: String(base.run_index ?? ''),\n    background_file: base.background_file || '',\n    template_file: base.template_file || '',\n    template_name: base.template_name || '',\n    original_filename: base.original_filename || '',\n    source_video_key: base.source_video_key || '',\n    bucket,\n    s3_key: $('Crypto').first().json.video +\".mp4\" || '',\n    video_url: base.s3_key ? baseUrl + '/' + bucket + '/' + $('Crypto').first().json.video +\".mp4\" : '',\n    file_size_bytes: String(fileData.fileSize ?? ''),\n    duration_seconds: String(base.duration ?? ''),\n    word_count: String(base.word_count ?? ''),\n    status: 'success',\n    render_started_at: startedAt,\n    render_finished_at: finishedAt,\n    render_seconds: Number.isFinite(startedMs)\n      ? ((finishedMs - startedMs) / 1000).toFixed(2)\n      : '',\n    job_started_at: base.job_started_at || '',\n    job_finished_at: finishedAt,\n    language: base.language || '',\n    segmentation_mode: base.segmentation_mode || '',\n  },\n};"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
         "position": [
           1952,
-          -112
+          -128
         ],
         "id": "b7c7aba3-e57d-434c-83e6-09a54dc686fd",
         "name": "Preparar Resultado",
@@ -797,13 +797,13 @@
             "mappingMode": "defineBelow",
             "value": {
               "created_at": "={{ $json.updatedAt.toDateTime().format('dd/MM/yy HH:mm') }}",
-              "uploaded_at": "=",
               "video_id": "={{ $('Crypto').item.json.video }}",
               "platform": "s3-local",
               "status": "generated",
               "file_size": "={{ $json.file_size_bytes }}",
-              "duration": "={{ $json.duration_seconds.toNumber().round(2) }}",
-              "video_name": "={{ $('Crypto').item.json.video }}.mp4"
+              "duration": "={{ ($json.duration_seconds / 60).toFixed(2) }}",
+              "video_name": "={{ $json.s3_key }}",
+              "url": "={{ $json.video_url }}"
             },
             "matchingColumns": [
               "video_id"
@@ -887,7 +887,7 @@
                 "display": true,
                 "type": "string",
                 "canBeUsedToMatch": true,
-                "removed": false
+                "removed": true
               },
               {
                 "id": "posted_at",
@@ -948,8 +948,8 @@
         "type": "n8n-nodes-base.googleSheets",
         "typeVersion": 4.7,
         "position": [
-          2384,
-          -112
+          2400,
+          -144
         ],
         "id": "c7d33169-4e2e-40e3-a7d8-7a85e3b42189",
         "name": "Append row in sheet",
@@ -1191,13 +1191,13 @@
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 598fac55",
+    "name": "Version 1f1a6687",
     "description": "",
     "autosaved": true,
-    "createdAt": "2026-10-29T22:24:12.622Z",
-    "updatedAt": "2026-10-29T22:26:51.000Z"
+    "createdAt": "2026-10-29T23:09:47.029Z",
+    "updatedAt": "2026-10-29T23:09:57.000Z"
   },
-  "activeVersionId": "598fac55-cb14-4c94-9af0-2cfef0ae538b",
+  "activeVersionId": "1f1a6687-6307-4ae9-802b-1e875fa58b48",
   "connections": {
     "Webhook — Novo Job": {
       "main": [
@@ -1566,7 +1566,7 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        864,
+        880,
         -112
       ],
       "id": "4643fd42-82c8-4e95-92b7-1ff0a8384470",
@@ -1669,13 +1669,13 @@
     },
     {
       "parameters": {
-        "jsCode": "const base = $('Reanexar Binário').item.json;\nconst binary = $('Renderizar com HyperFrames').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nconst baseUrl = String(\n  base.s3_public_base_url || 'http://localhost:8333',\n).replace(/\\/+$/, '');\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\n\nreturn {\n  json: {\n    execution_id: executionId,\n    execution_url: workflowId\n      ? 'http://localhost:5678/workflow/' +\n        workflowId +\n        '/executions/' +\n        executionId\n      : '',\n    run_index: String(base.run_index ?? ''),\n    background_file: base.background_file || '',\n    template_file: base.template_file || '',\n    template_name: base.template_name || '',\n    original_filename: base.original_filename || '',\n    source_video_key: base.source_video_key || '',\n    bucket,\n    s3_key: base.s3_key || '',\n    video_url: base.s3_key ? baseUrl + '/' + bucket + '/' + base.s3_key : '',\n    file_size_bytes: String(fileData.fileSize ?? ''),\n    duration_seconds: String(base.duration ?? ''),\n    word_count: String(base.word_count ?? ''),\n    status: 'success',\n    render_started_at: startedAt,\n    render_finished_at: finishedAt,\n    render_seconds: Number.isFinite(startedMs)\n      ? ((finishedMs - startedMs) / 1000).toFixed(2)\n      : '',\n    job_started_at: base.job_started_at || '',\n    job_finished_at: finishedAt,\n    language: base.language || '',\n    segmentation_mode: base.segmentation_mode || '',\n  },\n};"
+        "jsCode": "const base = $('Reanexar Binário').item.json;\nconst binary = $('Renderizar com HyperFrames').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nconst baseUrl = String(\n  base.s3_public_base_url || 'http://localhost:8333',\n).replace(/\\/+$/, '');\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\n\nreturn {\n  json: {\n    execution_id: executionId,\n    execution_url: workflowId\n      ? 'http://localhost:5678/workflow/' +\n        workflowId +\n        '/executions/' +\n        executionId\n      : '',\n    run_index: String(base.run_index ?? ''),\n    background_file: base.background_file || '',\n    template_file: base.template_file || '',\n    template_name: base.template_name || '',\n    original_filename: base.original_filename || '',\n    source_video_key: base.source_video_key || '',\n    bucket,\n    s3_key: $('Crypto').first().json.video +\".mp4\" || '',\n    video_url: base.s3_key ? baseUrl + '/' + bucket + '/' + $('Crypto').first().json.video +\".mp4\" : '',\n    file_size_bytes: String(fileData.fileSize ?? ''),\n    duration_seconds: String(base.duration ?? ''),\n    word_count: String(base.word_count ?? ''),\n    status: 'success',\n    render_started_at: startedAt,\n    render_finished_at: finishedAt,\n    render_seconds: Number.isFinite(startedMs)\n      ? ((finishedMs - startedMs) / 1000).toFixed(2)\n      : '',\n    job_started_at: base.job_started_at || '',\n    job_finished_at: finishedAt,\n    language: base.language || '',\n    segmentation_mode: base.segmentation_mode || '',\n  },\n};"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
         1952,
-        -112
+        -128
       ],
       "id": "b7c7aba3-e57d-434c-83e6-09a54dc686fd",
       "name": "Preparar Resultado",
@@ -2216,13 +2216,13 @@
           "mappingMode": "defineBelow",
           "value": {
             "created_at": "={{ $json.updatedAt.toDateTime().format('dd/MM/yy HH:mm') }}",
-            "uploaded_at": "=",
             "video_id": "={{ $('Crypto').item.json.video }}",
             "platform": "s3-local",
             "status": "generated",
             "file_size": "={{ $json.file_size_bytes }}",
-            "duration": "={{ $json.duration_seconds.toNumber().round(2) }}",
-            "video_name": "={{ $('Crypto').item.json.video }}.mp4"
+            "duration": "={{ ($json.duration_seconds / 60).toFixed(2) }}",
+            "video_name": "={{ $json.s3_key }}",
+            "url": "={{ $json.video_url }}"
           },
           "matchingColumns": [
             "video_id"
@@ -2306,7 +2306,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": false
+              "removed": true
             },
             {
               "id": "posted_at",
@@ -2367,8 +2367,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        2384,
-        -112
+        2400,
+        -144
       ],
       "id": "c7d33169-4e2e-40e3-a7d8-7a85e3b42189",
       "name": "Append row in sheet",
@@ -2394,7 +2394,59 @@
       "name": "Crypto"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Webhook — Novo Job": [
+      {
+        "json": {
+          "headers": {
+            "host": "localhost:5678",
+            "connection": "keep-alive",
+            "content-length": "1010625",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+            "sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\", \"Microsoft Edge\";v=\"156\"",
+            "content-type": "multipart/form-data; boundary=----WebKitFormBoundary6OJ6t9FhP67pllBb",
+            "sec-ch-ua-mobile": "?0",
+            "accept": "*/*",
+            "origin": "http://localhost:8888",
+            "sec-fetch-site": "same-site",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-dest": "empty",
+            "referer": "http://localhost:8888/",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "pt-BR,pt;q=0.9"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "official_lyrics": "",
+            "templates": "[\"lyrics-cinematic.html\"]",
+            "background_mode": "folder_selected",
+            "background_keys": "[\"videos_background/video-3.mp4\"]",
+            "language": "pt",
+            "segmentation_mode": "lyrics"
+          },
+          "webhookUrl": "http://localhost:5678/webhook/lyrics-job",
+          "executionMode": "production"
+        },
+        "binary": {
+          "video": {
+            "mimeType": "audio/mpeg",
+            "fileType": "audio",
+            "fileExtension": "mpga",
+            "data": "filesystem-v2",
+            "fileName": "2182_0_0_video-2_lyrics-romance-letter.mp3",
+            "id": "filesystem-v2:workflows/6UpxOdSjmtGxpq3g/executions/3269/binary_data/24b4a484-77b0-46f1-a279-980a7c05645c",
+            "fileSize": "1.01 MB",
+            "bytes": 1009726
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "repo_name": "n8n-automacoes-videos",
   "repo_owner": "Rafael-Honorato",
   "repo_path": "",
@@ -2415,6 +2467,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T22:30:45.180Z",
-  "versionId": "598fac55-cb14-4c94-9af0-2cfef0ae538b"
+  "updatedAt": "2026-10-29T23:14:03.448Z",
+  "versionId": "1f1a6687-6307-4ae9-802b-1e875fa58b48"
 }
