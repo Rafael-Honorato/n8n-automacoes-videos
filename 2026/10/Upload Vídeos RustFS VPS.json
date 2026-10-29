@@ -1,7 +1,615 @@
 {
-  "active": false,
-  "activeVersion": null,
-  "activeVersionId": null,
+  "active": true,
+  "activeVersion": {
+    "versionId": "5de14dc6-ed3e-4b82-b0af-00dd8a37c408",
+    "workflowId": "7pGgio9yWLTc3wbA",
+    "nodes": [
+      {
+        "parameters": {
+          "pollTimes": {
+            "item": [
+              {
+                "mode": "custom",
+                "cronExpression": "*/10 * * * *"
+              }
+            ]
+          },
+          "documentId": {
+            "__rl": true,
+            "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+            "mode": "list",
+            "cachedResultName": "N8N Controle de Postagens",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "11/2026",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit#gid=0"
+          },
+          "options": {
+            "columnsToWatch": [
+              "status"
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.googleSheetsTrigger",
+        "typeVersion": 1,
+        "position": [
+          -192,
+          -64
+        ],
+        "id": "048b8b5f-d4f9-493a-99d1-87d540ba5f98",
+        "name": "Google Sheets Trigger",
+        "credentials": {
+          "googleSheetsTriggerOAuth2Api": {
+            "id": "elaTndlD0M94pXOS",
+            "name": "Google Sheets Trigger account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          32,
+          -64
+        ],
+        "id": "17f0b3d7-025a-4890-98ca-4409faf4cd6b",
+        "name": "Loop Over Items"
+      },
+      {
+        "parameters": {
+          "bucketName": "lyrics",
+          "fileKey": "={{ $json.video_name }}"
+        },
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          448,
+          -48
+        ],
+        "id": "d91acbc3-ebc3-420c-bbb6-3eb4222cf65f",
+        "name": "Download a file",
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "operation": "upload",
+          "bucketName": "videos",
+          "fileName": "={{ $json.video_name }}",
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          672,
+          -64
+        ],
+        "id": "3cfad352-e6f9-42bd-a4fb-572b89caae36",
+        "name": "Upload a file",
+        "alwaysOutputData": false,
+        "credentials": {
+          "s3": {
+            "id": "eu9IJ12z75eD0q98",
+            "name": "S3 account RustFS"
+          }
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+            "mode": "list",
+            "cachedResultName": "N8N Controle de Postagens",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "11/2026",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit#gid=0"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "status": "uploaded",
+              "video_id": "={{ $('Download a file').item.json.video_id }}"
+            },
+            "matchingColumns": [
+              "video_id"
+            ],
+            "schema": [
+              {
+                "id": "video_id",
+                "displayName": "video_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "video_name",
+                "displayName": "video_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "url",
+                "displayName": "url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "captions",
+                "displayName": "captions",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "captions_ia",
+                "displayName": "captions_ia",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "platform",
+                "displayName": "platform",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "uploaded_at",
+                "displayName": "uploaded_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "posted_at",
+                "displayName": "posted_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "created_at",
+                "displayName": "created_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "error",
+                "displayName": "error",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "file_size",
+                "displayName": "file_size",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "duration",
+                "displayName": "duration",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "row_number",
+                "displayName": "row_number",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true,
+                "readOnly": true,
+                "removed": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          896,
+          -80
+        ],
+        "id": "d375db0b-d3e5-482e-8a0e-8e5cd113140e",
+        "name": "Update row in sheet",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "sAM6GslLDEir4RgL",
+            "name": "Google Sheets account"
+          }
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "documentId": {
+            "__rl": true,
+            "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+            "mode": "list",
+            "cachedResultName": "N8N Controle de Postagens",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit?usp=drivesdk"
+          },
+          "sheetName": {
+            "__rl": true,
+            "value": "gid=0",
+            "mode": "list",
+            "cachedResultName": "11/2026",
+            "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38/edit#gid=0"
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "video_id": "={{ $json.video_id }}",
+              "error": "=http://localhost:5678/workflow/{{$workflow.id}}/executions/{{ $execution.id }}"
+            },
+            "matchingColumns": [
+              "video_id"
+            ],
+            "schema": [
+              {
+                "id": "video_id",
+                "displayName": "video_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": false
+              },
+              {
+                "id": "video_name",
+                "displayName": "video_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "object_key",
+                "displayName": "object_key",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "captions",
+                "displayName": "captions",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "captions_ia",
+                "displayName": "captions_ia",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "platform",
+                "displayName": "platform",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "uploaded_at",
+                "displayName": "uploaded_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "posted_at",
+                "displayName": "posted_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "created_at",
+                "displayName": "created_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "error",
+                "displayName": "error",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true
+              },
+              {
+                "id": "file_size",
+                "displayName": "file_size",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "duration",
+                "displayName": "duration",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "canBeUsedToMatch": true,
+                "removed": true
+              },
+              {
+                "id": "row_number",
+                "displayName": "row_number",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "number",
+                "canBeUsedToMatch": true,
+                "readOnly": true,
+                "removed": true
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          912,
+          176
+        ],
+        "id": "a2ac3ed3-12af-4ac7-9b99-c7bba550f5f9",
+        "name": "Update row in sheet1",
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "sAM6GslLDEir4RgL",
+            "name": "Google Sheets account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "includeOtherFields": true,
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.5,
+        "position": [
+          272,
+          -48
+        ],
+        "id": "d0eebc81-9a57-43fd-a89a-e6d86de7d89a",
+        "name": "Edit Fields"
+      }
+    ],
+    "connections": {
+      "Google Sheets Trigger": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download a file": {
+        "main": [
+          [
+            {
+              "node": "Upload a file",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Update row in sheet1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload a file": {
+        "main": [
+          [
+            {
+              "node": "Update row in sheet",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Update row in sheet1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update row in sheet": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Update row in sheet1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "Download a file",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update row in sheet1": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "n8n n8n",
+    "name": "Version 5de14dc6",
+    "description": "",
+    "autosaved": true,
+    "createdAt": "2026-10-29T23:27:02.362Z",
+    "updatedAt": "2026-10-29T23:27:03.000Z"
+  },
+  "activeVersionId": "5de14dc6-ed3e-4b82-b0af-00dd8a37c408",
   "connections": {
     "Google Sheets Trigger": {
       "main": [
@@ -67,6 +675,13 @@
         [
           {
             "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet1",
             "type": "main",
             "index": 0
           }
@@ -166,12 +781,12 @@
     {
       "parameters": {
         "bucketName": "lyrics",
-        "fileKey": "2182_0_0_video-2_lyrics-romance-letter.mp4"
+        "fileKey": "={{ $json.video_name }}"
       },
       "type": "n8n-nodes-base.s3",
       "typeVersion": 1,
       "position": [
-        400,
+        448,
         -48
       ],
       "id": "d91acbc3-ebc3-420c-bbb6-3eb4222cf65f",
@@ -188,14 +803,13 @@
       "parameters": {
         "operation": "upload",
         "bucketName": "videos",
-        "fileName": "2182_0_0_video-2_lyrics-romance-letter.mp4",
-        "binaryPropertyName": "dat",
+        "fileName": "={{ $json.video_name }}",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.s3",
       "typeVersion": 1,
       "position": [
-        624,
+        672,
         -64
       ],
       "id": "3cfad352-e6f9-42bd-a4fb-572b89caae36",
@@ -230,7 +844,7 @@
           "mappingMode": "defineBelow",
           "value": {
             "status": "uploaded",
-            "video_id": "={{ $('Google Sheets Trigger').item.json.video_id }}"
+            "video_id": "={{ $('Download a file').item.json.video_id }}"
           },
           "matchingColumns": [
             "video_id"
@@ -257,14 +871,14 @@
               "removed": true
             },
             {
-              "id": "object_key",
-              "displayName": "object_key",
+              "id": "url",
+              "displayName": "url",
               "required": false,
               "defaultMatch": false,
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "captions",
@@ -386,7 +1000,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        848,
+        896,
         -80
       ],
       "id": "d375db0b-d3e5-482e-8a0e-8e5cd113140e",
@@ -396,7 +1010,8 @@
           "id": "sAM6GslLDEir4RgL",
           "name": "Google Sheets account"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -574,7 +1189,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        864,
+        912,
         176
       ],
       "id": "a2ac3ed3-12af-4ac7-9b99-c7bba550f5f9",
@@ -594,14 +1209,37 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        224,
+        272,
         -48
       ],
       "id": "d0eebc81-9a57-43fd-a89a-e6d86de7d89a",
       "name": "Edit Fields"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "Google Sheets Trigger": [
+      {
+        "json": {
+          "video_id": "cee32c77-dc84-462a-868e-394b047372cc",
+          "video_name": "cee32c77-dc84-462a-868e-394b047372cc.mp4",
+          "url": "http://localhost:8333/lyrics/cee32c77-dc84-462a-868e-394b047372cc.mp4",
+          "captions": "",
+          "captions_ia": "",
+          "status": "generated",
+          "platform": "s3-local",
+          "uploaded_at": "",
+          "posted_at": "",
+          "created_at": 46324.80416666667,
+          "error": "",
+          "file_size": "8.97 MB",
+          "duration": 46143
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "repo_name": "n8n-automacoes-videos",
   "repo_owner": "Rafael-Honorato",
   "repo_path": "",
@@ -619,9 +1257,16 @@
       "updatedAt": "2026-10-29T18:53:46.789Z"
     }
   ],
-  "staticData": null,
+  "staticData": {
+    "node:Google Sheets Trigger": {
+      "documentId": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+      "sheetId": 0,
+      "lastRevision": 220,
+      "lastRevisionLink": "https://docs.google.com/spreadsheets/export?id=1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38&revision=220&exportFormat=xlsx"
+    }
+  },
   "tags": [],
-  "triggerCount": 0,
-  "updatedAt": "2026-10-29T21:40:40.682Z",
-  "versionId": "69d16304-c501-42d0-9740-e2d294195c12"
+  "triggerCount": 1,
+  "updatedAt": "2026-10-29T23:28:19.817Z",
+  "versionId": "51d55926-3019-42bf-ad2e-7c5fde72f478"
 }
