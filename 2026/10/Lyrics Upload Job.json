@@ -1496,7 +1496,7 @@
       "credentials": {
         "s3": {
           "id": "eu9IJ12z75eD0q98",
-          "name": "S3 account"
+          "name": "S3 account RustFS"
         }
       }
     },
@@ -1616,7 +1616,7 @@
       "credentials": {
         "s3": {
           "id": "eu9IJ12z75eD0q98",
-          "name": "S3 account"
+          "name": "S3 account RustFS"
         }
       },
       "onError": "continueErrorOutput"
@@ -2386,6 +2386,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T20:43:33.953Z",
-  "versionId": "4780296a-9218-47f8-a557-c9a3fd1632c7"
+  "updatedAt": "2026-10-29T21:00:11.229Z",
+  "versionId": "82c14f56-3ab0-4631-8963-a3e343915e2a"
 }
