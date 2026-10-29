@@ -1,0 +1,510 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Preparar Resultado": {
+      "main": [
+        [
+          {
+            "node": "Salvar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Resultado": {
+      "main": [
+        [
+          {
+            "node": "Loop: 1 por vez1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)1": {
+      "main": [
+        [
+          {
+            "node": "Baixar Vídeo Original1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar Vídeo Original1": {
+      "main": [
+        [
+          {
+            "node": "Transcrever (WhisperX)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever (WhisperX)1": {
+      "main": [
+        [
+          {
+            "node": "Preparar Lote1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lote1": {
+      "main": [
+        [
+          {
+            "node": "Loop: 1 por vez1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: 1 por vez1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Reanexar Binário1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reanexar Binário1": {
+      "main": [
+        [
+          {
+            "node": "Renderizar com HyperFrames1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar no SeaweedFS1": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurações (Mock)1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Renderizar com HyperFrames1": {
+      "main": [
+        [
+          {
+            "node": "Salvar no SeaweedFS1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Configurações (Mock)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-16T02:16:48.175Z",
+  "id": "RQnChWnA9K4ILQ7w",
+  "isArchived": false,
+  "meta": null,
+  "name": "fabrica nova",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const base = $('Reanexar Binário1').item.json;\nconst binary = $('Renderizar com HyperFrames1').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nconst baseUrl = String(base.s3_public_base_url || 'http://localhost:8333').replace(/\\/+$/, '');\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\n\nreturn {\n  json: {\n    execution_id: executionId,\n    execution_url: workflowId\n      ? 'http://localhost:5678/workflow/' + workflowId + '/executions/' + executionId\n      : '',\n    run_index: String(base.run_index ?? ''),\n    template_file: base.template_file || '',\n    template_name: base.template_name || '',\n    original_filename: base.original_filename || '',\n    source_video_key: base.source_video_key || '',\n    bucket,\n    s3_key: base.s3_key || '',\n    video_url: base.s3_key ? baseUrl + '/' + bucket + '/' + base.s3_key : '',\n    file_size_bytes: String(fileData.fileSize ?? ''),\n    duration_seconds: String(base.duration ?? ''),\n    word_count: String(base.word_count ?? ''),\n    status: 'success',\n    render_started_at: startedAt,\n    render_finished_at: finishedAt,\n    render_seconds: Number.isFinite(startedMs)\n      ? ((finishedMs - startedMs) / 1000).toFixed(2)\n      : '',\n    job_started_at: base.job_started_at || '',\n    job_finished_at: finishedAt,\n    language: base.language || '',\n    segmentation_mode: base.segmentation_mode || '',\n  },\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2384,
+        2304
+      ],
+      "id": "cff99326-9e2b-4e52-95ee-bd72f9118b4e",
+      "name": "Preparar Resultado"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "value": "rxL2UuUtcY4vm68c",
+          "mode": "list",
+          "cachedResultName": "lyric_renders",
+          "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/rxL2UuUtcY4vm68c"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2608,
+        2304
+      ],
+      "id": "a5d8ea78-8379-4d2c-8914-c18a5c15864a",
+      "name": "Salvar Resultado"
+    },
+    {
+      "parameters": {
+        "content": "Cada vídeo gerado vira uma linha na Data Table **lyric_renders**.\n\nCampos principais: execution_id, template_file, s3_key, video_url, status, render_started_at, render_finished_at, render_seconds.\n\nA URL pública usa o bucket `lyrics` do SeaweedFS (config `s3_public_base_url`).",
+        "height": 200,
+        "width": 420,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2384,
+        2016
+      ],
+      "id": "641ce9ac-2971-44e7-9403-eeb4d8a5ce0a",
+      "name": "Notas — Resultados"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "jvNWAtmFpjrwGx3p",
+          "mode": "list",
+          "cachedResultName": "lyric_templates",
+          "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/jvNWAtmFpjrwGx3p"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": []
+        },
+        "limit": 5
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        592,
+        2304
+      ],
+      "id": "870425ef-d9ea-4159-ac81-4d46c6c81a18",
+      "name": "Get row(s)1"
+    },
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "={{ $('Configurações (Mock)1').item.json.video_key }}"
+      },
+      "id": "4c724a41-00c1-4bb2-b520-b512df3c38c0",
+      "name": "Baixar Vídeo Original1",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        816,
+        2304
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "language",
+              "value": "={{ $('Configurações (Mock)1').item.json.language }}"
+            },
+            {
+              "name": "official_lyrics",
+              "value": "={{ $('Configurações (Mock)1').item.json.official_lyrics }}"
+            },
+            {
+              "name": "segmentation_mode",
+              "value": "={{ $('Configurações (Mock)1').item.json.segmentation_mode }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 1800000
+        }
+      },
+      "id": "36bcbbac-e89f-4085-a508-639d0509f534",
+      "name": "Transcrever (WhisperX)1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const config = $('Configurações (Mock)1').first().json;\nconst templateNames = String(config.template_names || 'lyrics.html')\n  .split(',')\n  .map((name) => name.trim())\n  .filter(Boolean);\n\nconst styles = $('Get row(s)1').all().map((item) => item.json);\nconst style = styles[0] || {};\nconst transcript = $input.first().json;\nconst filename = $('Baixar Vídeo Original1').first().json.fileName || 'video_original.mp4';\n\nconst words = (transcript.words || [])\n  .filter((w) => w && w.word)\n  .map((w) => ({ word: String(w.word), start: Number(w.start), end: Number(w.end) }))\n  .filter((w) => Number.isFinite(w.start) && Number.isFinite(w.end) && w.end > w.start);\n\nif (!words.length) {\n  throw new Error('WhisperX returned no words. Check official_lyrics and segmentation_mode.');\n}\n\nconst lastWord = words[words.length - 1];\nconst duration = Number((lastWord.end + 0.5).toFixed(3));\nconst bucket = 'lyrics';\n\nreturn templateNames.map((templateName, index) => {\n  const templateFile = templateName.toLowerCase().endsWith('.html')\n    ? templateName\n    : templateName + '.html';\n  const slug = templateFile\n    .replace(/\\.html$/i, '')\n    .replace(/[^a-zA-Z0-9._-]+/g, '-');\n  const s3Key = $execution.id + '_' + index + '_' + slug + '.mp4';\n\n  return {\n    json: {\n      run_index: index,\n      total_templates: templateNames.length,\n      template_file: templateFile,\n      template_name: style.name || 'default',\n      template_style: JSON.stringify(style),\n      transcript_data: JSON.stringify(words),\n      original_filename: filename,\n      source_video_key: config.video_key || '',\n      bucket,\n      s3_key: s3Key,\n      duration,\n      word_count: words.length,\n      language: config.language || '',\n      segmentation_mode: config.segmentation_mode || '',\n      job_started_at: config.job_started_at || '',\n      s3_public_base_url: config.s3_public_base_url || 'http://localhost:8333',\n    },\n  };\n});"
+      },
+      "id": "40a31c5b-3e68-41bc-8db9-81d2ddd047f6",
+      "name": "Preparar Lote1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5404bbf4-0368-41ff-9d23-9c28584150d4",
+      "name": "Loop: 1 por vez1",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1488,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst original = $('Baixar Vídeo Original1').first();\n\nreturn {\n  json: {\n    ...item.json,\n    render_started_at: new Date().toISOString(),\n  },\n  binary: original.binary,\n};"
+      },
+      "id": "da3ff89b-3146-482c-a325-2b5838af25d4",
+      "name": "Reanexar Binário1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ $('Reanexar Binário1').item.json.s3_key }}",
+        "additionalFields": {}
+      },
+      "id": "bfa6ff77-883f-4d97-a735-a62fb132ad5c",
+      "name": "Salvar no SeaweedFS1",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        2160,
+        2304
+      ],
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5",
+              "name": "template_names",
+              "value": "lyrics-romance-letter.html",
+              "type": "string"
+            },
+            {
+              "id": "1",
+              "name": "segmentation_mode",
+              "value": "lyrics",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "official_lyrics",
+              "value": "Mas depois\nque a boca\ntoca o vício\nDesbeijar não adianta de nada\nSe o corpo\ntem magnetismo\nAtração\nnão vê\nescolha errada\nTem cheiro\nque agarra,\nsuor que afoga\nOlhar que\nnão solta,\ntiro que\nnão mata\nGosto que\nsufoca Gruda\nna memória\nCama bagunçada\nMal vai embora\ne já me\nfaz falta\nSe seu beijo\né veneno\nVou te beber\ncom limão\ne gêlo\nSe sua cama\né prisão\nEssa madrugada\neu quero\ndormir preso\nSe seu beijo\né veneno\nVou te beber\ncom limão\ne gêlo\nSe você for\num errro\nQuero errar\ncom seu\ncorpo inteiro",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "video_key",
+              "value": "video_original.mp4",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "language",
+              "value": "pt",
+              "type": "string"
+            },
+            {
+              "id": "6",
+              "name": "job_started_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "7",
+              "name": "s3_public_base_url",
+              "value": "http://localhost:8333",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9c377eb9-537e-429f-b7a8-0289f5b25a9c",
+      "name": "Configurações (Mock)1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        368,
+        2304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hyperframes:3002/render",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "template",
+              "value": "={{ $json.template_file }}"
+            },
+            {
+              "name": "data",
+              "value": "={{ $json.transcript_data }}"
+            },
+            {
+              "name": "duration",
+              "value": "={{ $json.duration }}"
+            },
+            {
+              "name": "style",
+              "value": "={{ $json.template_style }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 1800000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1936,
+        2304
+      ],
+      "id": "2fc87e28-827f-4307-8472-03815e39eb7e",
+      "name": "Renderizar com HyperFrames1"
+    },
+    {
+      "parameters": {
+        "content": "Renderiza um vídeo por template listado em **template_names** (Configurações).\n\nExemplo para testar todos:\nlyrics.html,lyrics-neon.html,lyrics-bold-box.html,lyrics-serif-mix.html,lyrics-typewriter.html,lyrics-cinematic.html\n\nCada render é sequencial e pode levar minutos. Para testar um só, deixe apenas o nome dele.",
+        "height": 220,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        2016
+      ],
+      "id": "ce797ad8-e423-4e66-81f4-3c2665fd49d2",
+      "name": "Notas — Templates1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        128,
+        2304
+      ],
+      "id": "15a3b467-4612-4c7f-b879-956a2334ae8c",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Sao_Paulo",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "RQnChWnA9K4ILQ7w",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-16T02:16:48.181Z",
+      "updatedAt": "2026-10-16T02:16:48.181Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-10-29T20:43:46.471Z",
+  "versionId": "b609a507-f0e4-403f-abd9-a4b2f4e901d7"
+}
