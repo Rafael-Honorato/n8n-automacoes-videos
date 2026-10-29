@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "36985229-249d-41b9-aba5-bb6586b37fed",
+    "versionId": "9da1f64c-b9f7-4190-9eab-fe7ea57c92ad",
     "workflowId": "ysAaoZMr8BKHQZdC",
     "nodes": [
       {
@@ -460,6 +460,21 @@
             "name": "n8n account"
           }
         }
+      },
+      {
+        "parameters": {
+          "content": "https://github.com/Rafael-Honorato/n8n-automacoes-videos",
+          "height": 80,
+          "width": 448
+        },
+        "type": "n8n-nodes-base.stickyNote",
+        "position": [
+          16,
+          -432
+        ],
+        "typeVersion": 1,
+        "id": "ae4815bb-1d73-427f-9270-f9c1c8770e22",
+        "name": "Sticky Note1"
       }
     ],
     "connections": {
@@ -703,13 +718,13 @@
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 36985229",
+    "name": "Version 9da1f64c",
     "description": "",
     "autosaved": true,
-    "createdAt": "2026-10-17T18:31:09.064Z",
-    "updatedAt": "2026-10-17T18:31:17.000Z"
+    "createdAt": "2026-10-29T20:48:11.596Z",
+    "updatedAt": "2026-10-29T20:48:13.000Z"
   },
-  "activeVersionId": "36985229-249d-41b9-aba5-bb6586b37fed",
+  "activeVersionId": "9da1f64c-b9f7-4190-9eab-fe7ea57c92ad",
   "connections": {
     "Config": {
       "main": [
@@ -1414,6 +1429,21 @@
           "name": "n8n account"
         }
       }
+    },
+    {
+      "parameters": {
+        "content": "https://github.com/Rafael-Honorato/n8n-automacoes-videos",
+        "height": 80,
+        "width": 448
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        16,
+        -432
+      ],
+      "typeVersion": 1,
+      "id": "ae4815bb-1d73-427f-9270-f9c1c8770e22",
+      "name": "Sticky Note1"
     }
   ],
   "pinData": {
@@ -1887,6 +1917,6 @@
   },
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T20:44:21.781Z",
-  "versionId": "36985229-249d-41b9-aba5-bb6586b37fed"
+  "updatedAt": "2026-10-29T20:48:11.594Z",
+  "versionId": "9da1f64c-b9f7-4190-9eab-fe7ea57c92ad"
 }
