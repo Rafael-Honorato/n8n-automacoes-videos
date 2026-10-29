@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "4d367ba1-cf71-4174-8514-2d392472c0fb",
+    "versionId": "8f139868-aa0c-4a1b-a52c-2dcbb53cf030",
     "workflowId": "YUWn7NyaPkg6UhG2",
     "nodes": [
       {
@@ -39,8 +39,8 @@
         "name": "Listar Backgrounds",
         "credentials": {
           "s3": {
-            "id": "eu9IJ12z75eD0q98",
-            "name": "S3 account"
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
           }
         }
       },
@@ -124,13 +124,13 @@
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 4d367ba1",
+    "name": "Version 8f139868",
     "description": "",
     "autosaved": true,
-    "createdAt": "2026-10-28T20:30:55.222Z",
-    "updatedAt": "2026-10-28T20:31:07.000Z"
+    "createdAt": "2026-10-29T21:55:52.507Z",
+    "updatedAt": "2026-10-29T21:55:54.000Z"
   },
-  "activeVersionId": "4d367ba1-cf71-4174-8514-2d392472c0fb",
+  "activeVersionId": "8f139868-aa0c-4a1b-a52c-2dcbb53cf030",
   "connections": {
     "Webhook — Backgrounds": {
       "main": [
@@ -208,8 +208,8 @@
       "name": "Listar Backgrounds",
       "credentials": {
         "s3": {
-          "id": "eu9IJ12z75eD0q98",
-          "name": "S3 account"
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
         }
       }
     },
@@ -277,6 +277,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T20:43:50.152Z",
-  "versionId": "4d367ba1-cf71-4174-8514-2d392472c0fb"
+  "updatedAt": "2026-10-29T21:55:52.506Z",
+  "versionId": "8f139868-aa0c-4a1b-a52c-2dcbb53cf030"
 }
