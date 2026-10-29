@@ -1,0 +1,282 @@
+{
+  "active": true,
+  "activeVersion": {
+    "versionId": "4d367ba1-cf71-4174-8514-2d392472c0fb",
+    "workflowId": "YUWn7NyaPkg6UhG2",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "lyric-backgrounds",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -336,
+          16
+        ],
+        "id": "03d756b6-4cb9-4bc3-a029-5e194d229b75",
+        "name": "Webhook — Backgrounds",
+        "webhookId": "ab6b1286-433d-40cb-8f22-d39e9bd3bd76"
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "bucketName": "lyrics",
+          "returnAll": true,
+          "options": {
+            "folderKey": "videos_background/"
+          }
+        },
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          -112,
+          16
+        ],
+        "id": "51880128-f5b8-4670-942f-b7c29a42363f",
+        "name": "Listar Backgrounds",
+        "credentials": {
+          "s3": {
+            "id": "eu9IJ12z75eD0q98",
+            "name": "S3 account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all().map((item) => item.json);\n\nconst backgrounds = items\n  .map((item) => ({\n    key: item.Key || item.key || '',\n    size: item.Size || item.size || '',\n    lastModified: item.LastModified || item.lastModified || '',\n  }))\n  .filter((item) => item.key && /\\.(mp4|mov|webm|m4v)$/i.test(item.key))\n  .map((item) => ({ ...item, name: item.key.split('/').pop() }))\n  .sort((a, b) => a.name.localeCompare(b.name));\n\nreturn [\n  {\n    json: {\n      count: backgrounds.length,\n      backgrounds,\n    },\n  },\n];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          112,
+          16
+        ],
+        "id": "1d83d918-c511-43f2-a5e0-3434b195ea63",
+        "name": "Preparar Lista"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          336,
+          16
+        ],
+        "id": "8719bc71-7237-49ae-9b94-efa9f5d3e4a2",
+        "name": "Responder Backgrounds"
+      }
+    ],
+    "connections": {
+      "Webhook — Backgrounds": {
+        "main": [
+          [
+            {
+              "node": "Listar Backgrounds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Listar Backgrounds": {
+        "main": [
+          [
+            {
+              "node": "Preparar Lista",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar Lista": {
+        "main": [
+          [
+            {
+              "node": "Responder Backgrounds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "n8n n8n",
+    "name": "Version 4d367ba1",
+    "description": "",
+    "autosaved": true,
+    "createdAt": "2026-10-28T20:30:55.222Z",
+    "updatedAt": "2026-10-28T20:31:07.000Z"
+  },
+  "activeVersionId": "4d367ba1-cf71-4174-8514-2d392472c0fb",
+  "connections": {
+    "Webhook — Backgrounds": {
+      "main": [
+        [
+          {
+            "node": "Listar Backgrounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Backgrounds": {
+      "main": [
+        [
+          {
+            "node": "Preparar Lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lista": {
+      "main": [
+        [
+          {
+            "node": "Responder Backgrounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-28T20:30:55.216Z",
+  "id": "YUWn7NyaPkg6UhG2",
+  "isArchived": false,
+  "meta": null,
+  "name": "Lyrics Backgrounds API",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "path": "lyric-backgrounds",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        16
+      ],
+      "id": "03d756b6-4cb9-4bc3-a029-5e194d229b75",
+      "name": "Webhook — Backgrounds",
+      "webhookId": "ab6b1286-433d-40cb-8f22-d39e9bd3bd76"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "bucketName": "lyrics",
+        "returnAll": true,
+        "options": {
+          "folderKey": "videos_background/"
+        }
+      },
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        16
+      ],
+      "id": "51880128-f5b8-4670-942f-b7c29a42363f",
+      "name": "Listar Backgrounds",
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map((item) => item.json);\n\nconst backgrounds = items\n  .map((item) => ({\n    key: item.Key || item.key || '',\n    size: item.Size || item.size || '',\n    lastModified: item.LastModified || item.lastModified || '',\n  }))\n  .filter((item) => item.key && /\\.(mp4|mov|webm|m4v)$/i.test(item.key))\n  .map((item) => ({ ...item, name: item.key.split('/').pop() }))\n  .sort((a, b) => a.name.localeCompare(b.name));\n\nreturn [\n  {\n    json: {\n      count: backgrounds.length,\n      backgrounds,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        16
+      ],
+      "id": "1d83d918-c511-43f2-a5e0-3434b195ea63",
+      "name": "Preparar Lista"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        336,
+        16
+      ],
+      "id": "8719bc71-7237-49ae-9b94-efa9f5d3e4a2",
+      "name": "Responder Backgrounds"
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "YUWn7NyaPkg6UhG2",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-28T20:30:55.220Z",
+      "updatedAt": "2026-10-28T20:30:55.220Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-10-29T20:43:50.152Z",
+  "versionId": "4d367ba1-cf71-4174-8514-2d392472c0fb"
+}
