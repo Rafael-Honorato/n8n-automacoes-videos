@@ -1,0 +1,284 @@
+{
+  "active": true,
+  "activeVersion": {
+    "versionId": "1ec2e4da-14e9-48b6-b631-d55da9297286",
+    "workflowId": "NCmEoD0HPcI11PRF",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "lyric-results",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -336,
+          16
+        ],
+        "id": "63a80e90-86c4-4317-ae08-9141cd0b3d28",
+        "name": "Webhook — Resultados",
+        "webhookId": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d"
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "value": "rxL2UuUtcY4vm68c",
+            "mode": "list",
+            "cachedResultName": "lyric_renders",
+            "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/rxL2UuUtcY4vm68c"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": []
+          },
+          "limit": 200
+        },
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          -112,
+          16
+        ],
+        "id": "55fb92d2-f3d5-48c8-813f-346d5349a833",
+        "name": "Buscar Resultados"
+      },
+      {
+        "parameters": {
+          "jsCode": "const rows = $input.all().map((item) => item.json);\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          112,
+          16
+        ],
+        "id": "3b83dbad-5858-4b74-af43-f0beb059dc4a",
+        "name": "Preparar Resposta"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          336,
+          16
+        ],
+        "id": "ca451a07-3a1c-4aa4-b1cf-42fd57fc4ec0",
+        "name": "Responder"
+      }
+    ],
+    "connections": {
+      "Webhook — Resultados": {
+        "main": [
+          [
+            {
+              "node": "Buscar Resultados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Buscar Resultados": {
+        "main": [
+          [
+            {
+              "node": "Preparar Resposta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar Resposta": {
+        "main": [
+          [
+            {
+              "node": "Responder",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "n8n n8n",
+    "name": "Version 1ec2e4da",
+    "description": "",
+    "autosaved": false,
+    "createdAt": "2026-10-28T20:35:50.194Z",
+    "updatedAt": "2026-10-28T20:35:52.000Z"
+  },
+  "activeVersionId": "1ec2e4da-14e9-48b6-b631-d55da9297286",
+  "connections": {
+    "Webhook — Resultados": {
+      "main": [
+        [
+          {
+            "node": "Buscar Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Resultados": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-28T18:38:28.803Z",
+  "id": "NCmEoD0HPcI11PRF",
+  "isArchived": false,
+  "meta": null,
+  "name": "Lyrics Results API",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "path": "lyric-results",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        16
+      ],
+      "id": "63a80e90-86c4-4317-ae08-9141cd0b3d28",
+      "name": "Webhook — Resultados",
+      "webhookId": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "rxL2UuUtcY4vm68c",
+          "mode": "list",
+          "cachedResultName": "lyric_renders",
+          "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": []
+        },
+        "limit": 200
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        16
+      ],
+      "id": "55fb92d2-f3d5-48c8-813f-346d5349a833",
+      "name": "Buscar Resultados"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((item) => item.json);\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        16
+      ],
+      "id": "3b83dbad-5858-4b74-af43-f0beb059dc4a",
+      "name": "Preparar Resposta"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        336,
+        16
+      ],
+      "id": "ca451a07-3a1c-4aa4-b1cf-42fd57fc4ec0",
+      "name": "Responder"
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "NCmEoD0HPcI11PRF",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-28T18:38:28.810Z",
+      "updatedAt": "2026-10-28T18:38:28.810Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-10-29T20:43:36.748Z",
+  "versionId": "1ec2e4da-14e9-48b6-b631-d55da9297286"
+}
