@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "5de14dc6-ed3e-4b82-b0af-00dd8a37c408",
+    "versionId": "6324788e-05a4-4b59-96ab-ec164c61bc1e",
     "workflowId": "7pGgio9yWLTc3wbA",
     "nodes": [
       {
@@ -86,7 +86,7 @@
       {
         "parameters": {
           "operation": "upload",
-          "bucketName": "videos",
+          "bucketName": "teste",
           "fileName": "={{ $json.video_name }}",
           "additionalFields": {}
         },
@@ -162,7 +162,7 @@
                 "display": true,
                 "type": "string",
                 "canBeUsedToMatch": true,
-                "removed": true
+                "removed": false
               },
               {
                 "id": "captions",
@@ -603,13 +603,13 @@
     },
     "nodeGroups": [],
     "authors": "n8n n8n",
-    "name": "Version 5de14dc6",
+    "name": "Version 6324788e",
     "description": "",
     "autosaved": true,
-    "createdAt": "2026-10-29T23:27:02.362Z",
-    "updatedAt": "2026-10-29T23:27:03.000Z"
+    "createdAt": "2026-10-30T00:14:57.261Z",
+    "updatedAt": "2026-10-30T00:15:11.000Z"
   },
-  "activeVersionId": "5de14dc6-ed3e-4b82-b0af-00dd8a37c408",
+  "activeVersionId": "6324788e-05a4-4b59-96ab-ec164c61bc1e",
   "connections": {
     "Google Sheets Trigger": {
       "main": [
@@ -802,7 +802,7 @@
     {
       "parameters": {
         "operation": "upload",
-        "bucketName": "videos",
+        "bucketName": "teste",
         "fileName": "={{ $json.video_name }}",
         "additionalFields": {}
       },
@@ -1034,7 +1034,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "video_id": "={{ $json.video_id }}",
-            "error": "=http://localhost:5678/workflow/{{$workflow.id}}/executions/{{ $execution.id }}"
+            "error": "=http://localhost:5678/workflow/{{$workflow.id}}/executions/{{ $execution.id }}",
+            "status": "error"
           },
           "matchingColumns": [
             "video_id"
@@ -1061,8 +1062,8 @@
               "removed": true
             },
             {
-              "id": "object_key",
-              "displayName": "object_key",
+              "id": "url",
+              "displayName": "url",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -1098,7 +1099,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "platform",
@@ -1147,7 +1148,8 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
-              "canBeUsedToMatch": true
+              "canBeUsedToMatch": true,
+              "removed": false
             },
             {
               "id": "file_size",
@@ -1267,6 +1269,6 @@
   },
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T23:28:19.817Z",
-  "versionId": "51d55926-3019-42bf-ad2e-7c5fde72f478"
+  "updatedAt": "2026-10-30T00:15:57.973Z",
+  "versionId": "aa8356fb-5852-444f-bc3e-17fc74e72fc1"
 }
