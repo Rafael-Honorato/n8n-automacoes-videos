@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "694d16c8-76a6-421d-82e9-25c0240aa379",
+    "versionId": "2c9c36a4-b00f-4bc2-8775-76dcdee94133",
     "workflowId": "NCmEoD0HPcI11PRF",
     "nodes": [
       {
@@ -48,7 +48,7 @@
       },
       {
         "parameters": {
-          "jsCode": "const rows = $input.all().map((item) => item.json);\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
+          "jsCode": "const rows = $input.all().map((item) => item.json);\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  source_video_key: row.source_video_key,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  job_id: row.job_id,\n  sync_revision: row.sync_revision,\n  is_preview: row.is_preview,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
         },
         "type": "n8n-nodes-base.code",
         "typeVersion": 2,
@@ -147,14 +147,14 @@
       }
     },
     "nodeGroups": [],
-    "authors": "n8n n8n",
-    "name": "Version 694d16c8",
-    "description": "",
-    "autosaved": true,
-    "createdAt": "2026-10-29T22:01:51.879Z",
-    "updatedAt": "2026-10-29T22:02:03.000Z"
+    "authors": "n8n n8n (via MCP)",
+    "name": "Incluir job_id, sync_revision e is_preview",
+    "description": "A galeria e o editor passam a filtrar os vídeos pelo job de sincronia.",
+    "autosaved": false,
+    "createdAt": "2026-10-31T21:17:52.673Z",
+    "updatedAt": "2026-10-31T21:17:52.673Z"
   },
-  "activeVersionId": "694d16c8-76a6-421d-82e9-25c0240aa379",
+  "activeVersionId": "2c9c36a4-b00f-4bc2-8775-76dcdee94133",
   "connections": {
     "Webhook — Resultados": {
       "main": [
@@ -204,7 +204,10 @@
   "createdAt": "2026-10-28T18:38:28.803Z",
   "id": "NCmEoD0HPcI11PRF",
   "isArchived": false,
-  "meta": null,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
   "name": "Lyrics Results API",
   "nodeGroups": [],
   "nodes": [
@@ -252,7 +255,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const rows = $input.all().map((item) => item.json);\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
+        "jsCode": "const rows = $input.all().map((item) => item.json);\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  source_video_key: row.source_video_key,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  job_id: row.job_id,\n  sync_revision: row.sync_revision,\n  is_preview: row.is_preview,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -325,6 +328,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-29T22:01:51.877Z",
-  "versionId": "694d16c8-76a6-421d-82e9-25c0240aa379"
+  "updatedAt": "2026-10-31T21:17:52.670Z",
+  "versionId": "2c9c36a4-b00f-4bc2-8775-76dcdee94133"
 }
