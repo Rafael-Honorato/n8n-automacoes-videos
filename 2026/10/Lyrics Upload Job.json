@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "5ad93955-3671-4f15-8d4f-4cc4485c019b",
+    "versionId": "24f5b3b0-a438-408b-b935-d045bff76162",
     "workflowId": "6UpxOdSjmtGxpq3g",
     "nodes": [
       {
@@ -985,6 +985,20 @@
         ],
         "id": "69cc14fa-3efc-42f5-bcfe-ad83283c2c88",
         "name": "Crypto"
+      },
+      {
+        "id": "b411fe2b-961c-4401-b44f-fb75648096d3",
+        "name": "Corrigir Duração",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1056,
+          -112
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const transcript = $('Transcrever (WhisperX)').first().json || {};\nconst duration = Number(transcript.duration || transcript.metadata?.duration || 0);\nif (!Number.isFinite(duration) || duration <= 0) return $input.all();\nreturn $input.all().map((item) => ({\n  json: { ...item.json, duration: Number(duration.toFixed(3)) },\n}));"
+        }
       }
     ],
     "connections": {
@@ -1037,17 +1051,6 @@
           [
             {
               "node": "Preparar Lote",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Preparar Lote": {
-        "main": [
-          [
-            {
-              "node": "Loop: 1 por vez",
               "type": "main",
               "index": 0
             }
@@ -1199,17 +1202,39 @@
             }
           ]
         ]
+      },
+      "Preparar Lote": {
+        "main": [
+          [
+            {
+              "node": "Corrigir Duração",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Corrigir Duração": {
+        "main": [
+          [
+            {
+              "node": "Loop: 1 por vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [],
     "authors": "n8n n8n (via MCP)",
-    "name": "Modo legendas variadas + formato de saída",
-    "description": "Preparar Lote ganhou folder_varied (1 template sorteado por fundo, distribuicao equilibrada) e output_aspect/output_quality/fill_mode. O no HTTP envia os novos campos.",
+    "name": "Duração real do áudio no lote",
+    "description": "Usa a duração do WhisperX em vez de última palavra + 0,5s, evitando cortar o final da música.",
     "autosaved": false,
-    "createdAt": "2026-10-30T15:54:16.225Z",
-    "updatedAt": "2026-10-30T15:54:16.225Z"
+    "createdAt": "2026-10-31T21:30:52.322Z",
+    "updatedAt": "2026-10-31T21:30:52.322Z"
   },
-  "activeVersionId": "5ad93955-3671-4f15-8d4f-4cc4485c019b",
+  "activeVersionId": "24f5b3b0-a438-408b-b935-d045bff76162",
   "connections": {
     "Webhook — Novo Job": {
       "main": [
@@ -1260,17 +1285,6 @@
         [
           {
             "node": "Preparar Lote",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Preparar Lote": {
-      "main": [
-        [
-          {
-            "node": "Loop: 1 por vez",
             "type": "main",
             "index": 0
           }
@@ -1417,6 +1431,28 @@
         [
           {
             "node": "Salvar no SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Lote": {
+      "main": [
+        [
+          {
+            "node": "Corrigir Duração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Corrigir Duração": {
+      "main": [
+        [
+          {
+            "node": "Loop: 1 por vez",
             "type": "main",
             "index": 0
           }
@@ -2416,6 +2452,20 @@
       ],
       "id": "69cc14fa-3efc-42f5-bcfe-ad83283c2c88",
       "name": "Crypto"
+    },
+    {
+      "id": "b411fe2b-961c-4401-b44f-fb75648096d3",
+      "name": "Corrigir Duração",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        -112
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const transcript = $('Transcrever (WhisperX)').first().json || {};\nconst duration = Number(transcript.duration || transcript.metadata?.duration || 0);\nif (!Number.isFinite(duration) || duration <= 0) return $input.all();\nreturn $input.all().map((item) => ({\n  json: { ...item.json, duration: Number(duration.toFixed(3)) },\n}));"
+      }
     }
   ],
   "pinData": {
@@ -2491,6 +2541,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-30T15:54:16.220Z",
-  "versionId": "5ad93955-3671-4f15-8d4f-4cc4485c019b"
+  "updatedAt": "2026-10-31T21:30:52.317Z",
+  "versionId": "24f5b3b0-a438-408b-b935-d045bff76162"
 }
