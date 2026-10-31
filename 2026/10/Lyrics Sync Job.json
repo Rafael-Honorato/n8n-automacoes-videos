@@ -1,0 +1,568 @@
+{
+  "active": true,
+  "activeVersion": {
+    "versionId": "870034a7-c684-495d-9ff0-c9009ba5681e",
+    "workflowId": "yrYxHpFfLkjApj66",
+    "nodes": [
+      {
+        "id": "0e6fcc5f-4a90-49ba-88e7-8380280dc2d3",
+        "name": "Webhook — Novo Job (Sync)",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "lyrics-sync-job",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "12733e37-621c-49fa-8fa8-8e2de4f9e74a"
+      },
+      {
+        "id": "de6bf5e3-5a6b-45ea-ba94-cfe570eaf614",
+        "name": "Responder Job",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ jobId: $execution.id, status: \"accepted\", supervisor: \"manual\", editorUrl: \"http://localhost:8333/lyrics/front/sync.html?job=\" + $execution.id, executionUrl: \"http://localhost:5678/workflow/\" + $workflow.id + \"/executions/\" + $execution.id }) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "e96f9da9-30ab-4c8f-bc66-1321122e5171",
+        "name": "Iniciar Job",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const item = $input.first();\nconst body = item.json.body || item.json;\nconst binary = item.binary || {};\nconst keys = Object.keys(binary);\nif (!keys.length) throw new Error('Nenhum arquivo enviado. Use o campo \"video\" no formulário.');\nconst file = binary[keys[0]];\nconst fileName = String(body.original_filename || file.fileName || 'input');\nconst match = fileName.match(/.[a-z0-9]+$/i);\nconst extension = match ? match[0].toLowerCase() : '.mp4';\nconst jobId = String($execution.id);\nreturn {\n  json: {\n    ...body,\n    job_id: jobId,\n    source_name: fileName,\n    source_ext: extension,\n    source_mime: String(file.mimeType || 'application/octet-stream'),\n    source_size: file.fileSize || null,\n    job_started_at: new Date().toISOString(),\n  },\n  binary: { data: file },\n};"
+        }
+      },
+      {
+        "id": "a62b3577-b714-4b50-b130-5971f06b8d13",
+        "name": "Salvar Original",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $(\"Iniciar Job\").first().json.job_id + \"/source\" + $(\"Iniciar Job\").first().json.source_ext }}",
+          "binaryPropertyName": "data",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "5e7a85aa-8f1e-4ae9-b0ee-1ea3df4b8f57",
+        "name": "Reanexar Original",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const original = $('Iniciar Job').first();\nreturn { json: original.json, binary: original.binary };"
+        }
+      },
+      {
+        "id": "b333ca03-2ce7-49bb-8501-cbba0e7bb515",
+        "name": "Transcrever (WhisperX)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          1120,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://whisper-api:8000/transcribe/",
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "parameterType": "formBinaryData",
+                "name": "file",
+                "inputDataFieldName": "data"
+              },
+              {
+                "name": "official_lyrics",
+                "value": "={{ $json.official_lyrics }}"
+              },
+              {
+                "name": "language",
+                "value": "={{ $json.language || \"pt\" }}"
+              },
+              {
+                "name": "segmentation_mode",
+                "value": "={{ $json.segmentation_mode || \"lyrics\" }}"
+              },
+              {
+                "name": "pause_threshold",
+                "value": "={{ $json.pause_threshold || 1.5 }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 1800000
+          }
+        }
+      },
+      {
+        "id": "24ee8ac4-8d4f-4810-ba80-e84fdf07e3dc",
+        "name": "Preparar Job",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1344,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const transcript = $input.first().json || {};\nconst form = $('Iniciar Job').first().json || {};\nconst jobId = String(form.job_id || $execution.id);\nfunction parseList(value) {\n  if (Array.isArray(value)) return value;\n  try {\n    const parsed = JSON.parse(value || '[]');\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (error) {\n    return [];\n  }\n}\nconst lyricsText = String(form.official_lyrics || '');\nlet hash = 0;\nfor (let index = 0; index < lyricsText.length; index += 1) {\n  hash = ((hash << 5) - hash + lyricsText.charCodeAt(index)) | 0;\n}\nconst fingerprint = 'lyr_' + Math.abs(hash).toString(36);\nconst duration = Number(transcript.duration || transcript.metadata?.duration || 0);\nconst extension = String(form.source_ext || '.mp4').toLowerCase();\nconst mimeMap = {\n  '.mp4': 'video/mp4',\n  '.mov': 'video/quicktime',\n  '.webm': 'video/webm',\n  '.m4v': 'video/x-m4v',\n  '.mkv': 'video/x-matroska',\n  '.mp3': 'audio/mpeg',\n  '.wav': 'audio/wav',\n  '.m4a': 'audio/mp4',\n  '.aac': 'audio/aac',\n  '.ogg': 'audio/ogg',\n  '.flac': 'audio/flac',\n  '.opus': 'audio/opus',\n};\nconst declaredMime = String(form.source_mime || '').toLowerCase();\nconst sourceMime =\n  declaredMime && declaredMime !== 'application/octet-stream'\n    ? declaredMime\n    : mimeMap[extension] || 'application/octet-stream';\nconst job = {\n  version: 1,\n  jobId,\n  status: 'awaiting_sync',\n  created_at: form.job_started_at || new Date().toISOString(),\n  updated_at: new Date().toISOString(),\n  source: {\n    key: 'jobs/' + jobId + '/source' + extension,\n    filename: form.source_name || 'input',\n    mime: sourceMime,\n    duration,\n    size: form.source_size || null,\n  },\n  lyrics: {\n    text: lyricsText,\n    language: form.language || 'pt',\n    segmentation_mode: form.segmentation_mode || 'lyrics',\n    pause_threshold: Number(form.pause_threshold || 1.5),\n    fingerprint,\n  },\n  settings: {\n    templates: parseList(form.templates),\n    background_mode: form.background_mode || 'none',\n    background_keys: parseList(form.background_keys),\n    output_aspect: form.output_aspect || '9:16',\n    output_quality: form.output_quality || '1080',\n    fill_mode: form.fill_mode || 'contain',\n  },\n  draft: {\n    engine: 'whisperx-whole',\n    words: Array.isArray(transcript.words) ? transcript.words : [],\n    lines: Array.isArray(transcript.lines) ? transcript.lines : [],\n    peaks: Array.isArray(transcript.peaks) ? transcript.peaks : [],\n    duration,\n    warnings: transcript.metadata?.warnings || [],\n    low_confidence_words: transcript.metadata?.low_confidence_words || 0,\n    interpolated_words: transcript.metadata?.interpolated_words || 0,\n  },\n  timeline: null,\n};\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: job,\n  binary: { data: {\n    data: Buffer.from(payload, 'utf8').toString('base64'),\n    mimeType: 'application/json',\n    fileName: 'job.json',\n  } },\n};"
+        }
+      },
+      {
+        "id": "f497edda-fee3-4a6f-aad4-a30be3809608",
+        "name": "Salvar Job",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1568,
+          0
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $(\"Preparar Job\").first().json.jobId + \"/job.json\" }}",
+          "binaryPropertyName": "data",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook — Novo Job (Sync)": {
+        "main": [
+          [
+            {
+              "node": "Responder Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Responder Job": {
+        "main": [
+          [
+            {
+              "node": "Iniciar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Iniciar Job": {
+        "main": [
+          [
+            {
+              "node": "Salvar Original",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Salvar Original": {
+        "main": [
+          [
+            {
+              "node": "Reanexar Original",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reanexar Original": {
+        "main": [
+          [
+            {
+              "node": "Transcrever (WhisperX)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Transcrever (WhisperX)": {
+        "main": [
+          [
+            {
+              "node": "Preparar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparar Job": {
+        "main": [
+          [
+            {
+              "node": "Salvar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "n8n n8n (via MCP)",
+    "name": "Inferir MIME pela extensão",
+    "description": "Uploads chegam como application/octet-stream; o job agora grava video/* ou audio/* correto.",
+    "autosaved": false,
+    "createdAt": "2026-10-31T21:31:45.844Z",
+    "updatedAt": "2026-10-31T21:31:45.844Z"
+  },
+  "activeVersionId": "870034a7-c684-495d-9ff0-c9009ba5681e",
+  "connections": {
+    "Webhook — Novo Job (Sync)": {
+      "main": [
+        [
+          {
+            "node": "Responder Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder Job": {
+      "main": [
+        [
+          {
+            "node": "Iniciar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iniciar Job": {
+      "main": [
+        [
+          {
+            "node": "Salvar Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Original": {
+      "main": [
+        [
+          {
+            "node": "Reanexar Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reanexar Original": {
+      "main": [
+        [
+          {
+            "node": "Transcrever (WhisperX)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcrever (WhisperX)": {
+      "main": [
+        [
+          {
+            "node": "Preparar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Job": {
+      "main": [
+        [
+          {
+            "node": "Salvar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-31T21:09:21.209Z",
+  "id": "yrYxHpFfLkjApj66",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Lyrics Sync Job",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "0e6fcc5f-4a90-49ba-88e7-8380280dc2d3",
+      "name": "Webhook — Novo Job (Sync)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lyrics-sync-job",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "12733e37-621c-49fa-8fa8-8e2de4f9e74a"
+    },
+    {
+      "id": "de6bf5e3-5a6b-45ea-ba94-cfe570eaf614",
+      "name": "Responder Job",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ jobId: $execution.id, status: \"accepted\", supervisor: \"manual\", editorUrl: \"http://localhost:8333/lyrics/front/sync.html?job=\" + $execution.id, executionUrl: \"http://localhost:5678/workflow/\" + $workflow.id + \"/executions/\" + $execution.id }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "e96f9da9-30ab-4c8f-bc66-1321122e5171",
+      "name": "Iniciar Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $input.first();\nconst body = item.json.body || item.json;\nconst binary = item.binary || {};\nconst keys = Object.keys(binary);\nif (!keys.length) throw new Error('Nenhum arquivo enviado. Use o campo \"video\" no formulário.');\nconst file = binary[keys[0]];\nconst fileName = String(body.original_filename || file.fileName || 'input');\nconst match = fileName.match(/.[a-z0-9]+$/i);\nconst extension = match ? match[0].toLowerCase() : '.mp4';\nconst jobId = String($execution.id);\nreturn {\n  json: {\n    ...body,\n    job_id: jobId,\n    source_name: fileName,\n    source_ext: extension,\n    source_mime: String(file.mimeType || 'application/octet-stream'),\n    source_size: file.fileSize || null,\n    job_started_at: new Date().toISOString(),\n  },\n  binary: { data: file },\n};"
+      }
+    },
+    {
+      "id": "a62b3577-b714-4b50-b130-5971f06b8d13",
+      "name": "Salvar Original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $(\"Iniciar Job\").first().json.job_id + \"/source\" + $(\"Iniciar Job\").first().json.source_ext }}",
+        "binaryPropertyName": "data",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "5e7a85aa-8f1e-4ae9-b0ee-1ea3df4b8f57",
+      "name": "Reanexar Original",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const original = $('Iniciar Job').first();\nreturn { json: original.json, binary: original.binary };"
+      }
+    },
+    {
+      "id": "b333ca03-2ce7-49bb-8501-cbba0e7bb515",
+      "name": "Transcrever (WhisperX)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://whisper-api:8000/transcribe/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "official_lyrics",
+              "value": "={{ $json.official_lyrics }}"
+            },
+            {
+              "name": "language",
+              "value": "={{ $json.language || \"pt\" }}"
+            },
+            {
+              "name": "segmentation_mode",
+              "value": "={{ $json.segmentation_mode || \"lyrics\" }}"
+            },
+            {
+              "name": "pause_threshold",
+              "value": "={{ $json.pause_threshold || 1.5 }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 1800000
+        }
+      }
+    },
+    {
+      "id": "24ee8ac4-8d4f-4810-ba80-e84fdf07e3dc",
+      "name": "Preparar Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const transcript = $input.first().json || {};\nconst form = $('Iniciar Job').first().json || {};\nconst jobId = String(form.job_id || $execution.id);\nfunction parseList(value) {\n  if (Array.isArray(value)) return value;\n  try {\n    const parsed = JSON.parse(value || '[]');\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (error) {\n    return [];\n  }\n}\nconst lyricsText = String(form.official_lyrics || '');\nlet hash = 0;\nfor (let index = 0; index < lyricsText.length; index += 1) {\n  hash = ((hash << 5) - hash + lyricsText.charCodeAt(index)) | 0;\n}\nconst fingerprint = 'lyr_' + Math.abs(hash).toString(36);\nconst duration = Number(transcript.duration || transcript.metadata?.duration || 0);\nconst extension = String(form.source_ext || '.mp4').toLowerCase();\nconst mimeMap = {\n  '.mp4': 'video/mp4',\n  '.mov': 'video/quicktime',\n  '.webm': 'video/webm',\n  '.m4v': 'video/x-m4v',\n  '.mkv': 'video/x-matroska',\n  '.mp3': 'audio/mpeg',\n  '.wav': 'audio/wav',\n  '.m4a': 'audio/mp4',\n  '.aac': 'audio/aac',\n  '.ogg': 'audio/ogg',\n  '.flac': 'audio/flac',\n  '.opus': 'audio/opus',\n};\nconst declaredMime = String(form.source_mime || '').toLowerCase();\nconst sourceMime =\n  declaredMime && declaredMime !== 'application/octet-stream'\n    ? declaredMime\n    : mimeMap[extension] || 'application/octet-stream';\nconst job = {\n  version: 1,\n  jobId,\n  status: 'awaiting_sync',\n  created_at: form.job_started_at || new Date().toISOString(),\n  updated_at: new Date().toISOString(),\n  source: {\n    key: 'jobs/' + jobId + '/source' + extension,\n    filename: form.source_name || 'input',\n    mime: sourceMime,\n    duration,\n    size: form.source_size || null,\n  },\n  lyrics: {\n    text: lyricsText,\n    language: form.language || 'pt',\n    segmentation_mode: form.segmentation_mode || 'lyrics',\n    pause_threshold: Number(form.pause_threshold || 1.5),\n    fingerprint,\n  },\n  settings: {\n    templates: parseList(form.templates),\n    background_mode: form.background_mode || 'none',\n    background_keys: parseList(form.background_keys),\n    output_aspect: form.output_aspect || '9:16',\n    output_quality: form.output_quality || '1080',\n    fill_mode: form.fill_mode || 'contain',\n  },\n  draft: {\n    engine: 'whisperx-whole',\n    words: Array.isArray(transcript.words) ? transcript.words : [],\n    lines: Array.isArray(transcript.lines) ? transcript.lines : [],\n    peaks: Array.isArray(transcript.peaks) ? transcript.peaks : [],\n    duration,\n    warnings: transcript.metadata?.warnings || [],\n    low_confidence_words: transcript.metadata?.low_confidence_words || 0,\n    interpolated_words: transcript.metadata?.interpolated_words || 0,\n  },\n  timeline: null,\n};\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: job,\n  binary: { data: {\n    data: Buffer.from(payload, 'utf8').toString('base64'),\n    mimeType: 'application/json',\n    fileName: 'job.json',\n  } },\n};"
+      }
+    },
+    {
+      "id": "f497edda-fee3-4a6f-aad4-a30be3809608",
+      "name": "Salvar Job",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $(\"Preparar Job\").first().json.jobId + \"/job.json\" }}",
+        "binaryPropertyName": "data",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "yrYxHpFfLkjApj66",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-31T21:09:21.217Z",
+      "updatedAt": "2026-10-31T21:09:21.217Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-10-31T21:31:45.842Z",
+  "versionId": "870034a7-c684-495d-9ff0-c9009ba5681e"
+}
