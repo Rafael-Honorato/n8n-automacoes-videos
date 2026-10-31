@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "a380fa18-45f5-429e-a34f-d819da5909f2",
+    "versionId": "d80e8ebe-a582-4d55-b9c6-ce565c225d20",
     "workflowId": "Z47eTb2JlOKlLHbh",
     "nodes": [
       {
@@ -515,15 +515,45 @@
         ]
       }
     },
-    "nodeGroups": [],
+    "nodeGroups": [
+      {
+        "id": "0cbbc614-b643-4557-8242-a0e211d45379",
+        "name": "Ler job",
+        "nodeIds": [
+          "45ce7029-42aa-4fa5-84d0-dd1c7092e6c5",
+          "5ef31e6d-a79a-4645-bc7b-5ad75c755941",
+          "498c7032-69ab-4754-8e40-fda132c12319",
+          "2d8b75c4-dcf0-4c17-8071-e0014372ad83",
+          "8940c3ea-158c-4a87-893e-8339e6ede481"
+        ],
+        "description": "GET /webhook/lyric-job: lê jobs/<id>/job.json e devolve o job + mídia."
+      },
+      {
+        "id": "15f8f715-1052-4214-ace0-95aaf18a902d",
+        "name": "Salvar timeline",
+        "nodeIds": [
+          "74ce56a4-5180-4db8-98db-11d704273233",
+          "b0317d89-79e0-42b9-ac72-bbfcaab9a576",
+          "2eb4c4bc-d830-4450-a1be-703900fee794",
+          "acbf39f8-6b73-411b-94fd-236c73a5abc2",
+          "4f0eae6c-ef6e-4795-8a47-e837749d6530",
+          "d338ace4-d33e-408f-838c-e2ec16e6aad5",
+          "b2599a4d-28f7-4a2f-9e7c-92212d90712c",
+          "66a84f2e-a636-4815-a11b-02b46c405aff",
+          "6ed0eb08-e31a-4498-96c0-bdcb9004e660",
+          "563e3280-dc08-45a0-8d1f-3782d15462a4"
+        ],
+        "description": "POST /webhook/lyric-job-save: valida, grava histórico e job.json, com 409 em conflito."
+      }
+    ],
     "authors": "n8n n8n (via MCP)",
-    "name": "Inferir line pelos ranges quando ausente",
-    "description": "Compatibilidade com timelines antigas que não tinham o campo line em cada palavra.",
+    "name": "Agrupar salvamento da timeline",
+    "description": "Segundo grupo do canvas.",
     "autosaved": false,
-    "createdAt": "2026-10-31T21:20:06.785Z",
-    "updatedAt": "2026-10-31T21:20:06.785Z"
+    "createdAt": "2026-10-31T21:48:50.013Z",
+    "updatedAt": "2026-10-31T21:48:50.013Z"
   },
-  "activeVersionId": "a380fa18-45f5-429e-a34f-d819da5909f2",
+  "activeVersionId": "d80e8ebe-a582-4d55-b9c6-ce565c225d20",
   "connections": {
     "Webhook — Ler Job": {
       "main": [
@@ -695,7 +725,37 @@
     "builderVariant": "mcp"
   },
   "name": "Lyrics Job API",
-  "nodeGroups": [],
+  "nodeGroups": [
+    {
+      "id": "0cbbc614-b643-4557-8242-a0e211d45379",
+      "name": "Ler job",
+      "nodeIds": [
+        "45ce7029-42aa-4fa5-84d0-dd1c7092e6c5",
+        "5ef31e6d-a79a-4645-bc7b-5ad75c755941",
+        "498c7032-69ab-4754-8e40-fda132c12319",
+        "2d8b75c4-dcf0-4c17-8071-e0014372ad83",
+        "8940c3ea-158c-4a87-893e-8339e6ede481"
+      ],
+      "description": "GET /webhook/lyric-job: lê jobs/<id>/job.json e devolve o job + mídia."
+    },
+    {
+      "id": "15f8f715-1052-4214-ace0-95aaf18a902d",
+      "name": "Salvar timeline",
+      "nodeIds": [
+        "74ce56a4-5180-4db8-98db-11d704273233",
+        "b0317d89-79e0-42b9-ac72-bbfcaab9a576",
+        "2eb4c4bc-d830-4450-a1be-703900fee794",
+        "acbf39f8-6b73-411b-94fd-236c73a5abc2",
+        "4f0eae6c-ef6e-4795-8a47-e837749d6530",
+        "d338ace4-d33e-408f-838c-e2ec16e6aad5",
+        "b2599a4d-28f7-4a2f-9e7c-92212d90712c",
+        "66a84f2e-a636-4815-a11b-02b46c405aff",
+        "6ed0eb08-e31a-4498-96c0-bdcb9004e660",
+        "563e3280-dc08-45a0-8d1f-3782d15462a4"
+      ],
+      "description": "POST /webhook/lyric-job-save: valida, grava histórico e job.json, com 409 em conflito."
+    }
+  ],
   "nodes": [
     {
       "id": "20310ac2-fc81-498b-a255-290eaabe671c",
@@ -1065,6 +1125,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 2,
-  "updatedAt": "2026-10-31T21:20:06.773Z",
-  "versionId": "a380fa18-45f5-429e-a34f-d819da5909f2"
+  "updatedAt": "2026-10-31T21:48:50.011Z",
+  "versionId": "d80e8ebe-a582-4d55-b9c6-ce565c225d20"
 }
