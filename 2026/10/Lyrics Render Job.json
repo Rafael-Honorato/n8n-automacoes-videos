@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "71ea7c4b-4da4-446f-854f-a6f4c7e7770f",
+    "versionId": "15e1068a-a258-433b-949a-e06bc2a52c2e",
     "workflowId": "SVu7iWCc98dcJqqW",
     "nodes": [
       {
@@ -147,7 +147,8 @@
             "id": "VrwLLnraLOyd7d2l",
             "name": "S3 account SeaweedFS LOCAL"
           }
-        }
+        },
+        "executeOnce": true
       },
       {
         "id": "29fc05b3-66dd-41de-81cd-f99e4961621a",
@@ -918,6 +919,20 @@
           "mode": "runOnceForAllItems",
           "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst first = items[0].json || {};\nif (String(first.is_preview) !== 'true') return items;\nlet backgroundMode = String(first.background_mode || 'none');\nlet backgroundKey = first.background_key || '';\nlet backgroundFile = first.background_file || '';\nif (backgroundMode === 'none') {\n  const mime = String($('Ler Job').first().json.source?.mime || '');\n  if (mime.startsWith('video/')) {\n    backgroundMode = 'source';\n  } else {\n    const available = $('Listar Backgrounds').all()\n      .map((item) => item.json.Key || item.json.key || '')\n      .filter((key) => ['.mp4', '.mov', '.webm', '.m4v'].some((ext) => key.toLowerCase().endsWith(ext)))\n      .sort();\n    if (available.length) {\n      backgroundMode = 'fixed';\n      backgroundKey = available[0];\n      backgroundFile = available[0];\n    }\n  }\n}\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    background_mode: backgroundMode,\n    background_key: backgroundKey,\n    background_file: backgroundFile,\n  },\n}));"
         }
+      },
+      {
+        "id": "a9a47c2f-ab13-485a-857f-01d720e5ed48",
+        "name": "Preservar Linhas",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1600,
+          368
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const job = $('Ler Job').first().json || {};\nconst timeline = job.timeline || {};\nconst draft = job.draft || {};\nconst source = (Array.isArray(timeline.words) && timeline.words.length\n  ? timeline.words\n  : (Array.isArray(draft.words) ? draft.words : []));\nconst hasLine = source.some((word) => word && word.line !== null && word.line !== undefined && word.line !== '');\nif (!hasLine && Array.isArray(timeline.lines) && timeline.lines.length) {\n  timeline.lines.forEach((line, lineIndex) => {\n    const start = Number(line.word_start);\n    const end = Number(line.word_end);\n    if (!Number.isFinite(start) || !Number.isFinite(end)) return;\n    for (let index = start; index < end && index < source.length; index += 1) {\n      if (source[index] && (source[index].line === null || source[index].line === undefined)) {\n        source[index] = { ...source[index], line: lineIndex };\n      }\n    }\n  });\n}\nconst words = source\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({\n    word: String(word.word || word.text),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: word.line === null || word.line === undefined || word.line === ''\n      ? null\n      : (Number.isFinite(Number(word.line)) ? Number(word.line) : null),\n  }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!words.length) return $input.all();\nconst transcript = JSON.stringify(words);\nreturn $input.all().map((item) => ({ json: { ...item.json, transcript_data: transcript } }));"
+        }
       }
     ],
     "connections": {
@@ -1144,17 +1159,6 @@
           ]
         ]
       },
-      "Preparar Lote": {
-        "main": [
-          [
-            {
-              "node": "Ajustar Preview",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
       "Ajustar Preview": {
         "main": [
           [
@@ -1165,17 +1169,72 @@
             }
           ]
         ]
+      },
+      "Preparar Lote": {
+        "main": [
+          [
+            {
+              "node": "Preservar Linhas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preservar Linhas": {
+        "main": [
+          [
+            {
+              "node": "Ajustar Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
-    "nodeGroups": [],
+    "nodeGroups": [
+      {
+        "id": "31aa04d4-4f69-4abd-890e-e44748e0ce43",
+        "name": "Preparar render",
+        "nodeIds": [
+          "62dbd016-2795-4a3f-a196-4f01af2cfd3e",
+          "44c69505-a797-4f59-8fc7-3317f7007b3d",
+          "f2ffa590-ab89-4c27-a923-e26298b512f6",
+          "7e835acf-9568-40c9-9fdb-2cc119c1d242",
+          "a87f4e4e-9106-4a9f-8528-61a0c79752a6",
+          "43e6981b-21ec-4f71-aafc-90b139c0a099",
+          "29fc05b3-66dd-41de-81cd-f99e4961621a",
+          "a9a47c2f-ab13-485a-857f-01d720e5ed48",
+          "792cd9e5-6910-4a52-9781-33e26ce2d042"
+        ],
+        "description": "Baixa job.json + original, lê a timeline salva, monta o lote e prepara a prévia."
+      },
+      {
+        "id": "23278034-0e35-42e7-9a6b-93115e9b7556",
+        "name": "Renderizar lote",
+        "nodeIds": [
+          "dc964b8a-df1c-493e-9688-e16ad4b106ea",
+          "018233df-213c-4463-8dbe-68018d5ef2f9",
+          "55558f90-c705-4d17-89c8-490714904365",
+          "a6acbe48-a19c-407e-b747-ec9f00b5a610",
+          "74832e80-1a4c-4e72-a696-4278750ece17",
+          "7c936f63-79fa-436d-b1dd-00711b38727d",
+          "2095b299-3d7d-4e6b-b975-8da3e7067cbc",
+          "e97d9682-69c3-4db7-a598-20215a39bee2",
+          "d895a60a-4578-4cf3-8698-a85e7eab314c"
+        ],
+        "description": "Loop sequencial: renderiza, sobe para o S3, grava em lyric_renders e trata erros."
+      }
+    ],
     "authors": "n8n n8n (via MCP)",
-    "name": "Remover atualização final do job.json",
-    "description": "Evita sobrescrever a timeline com a cópia carregada no início do render; o status vem da lyric_renders.",
+    "name": "Agrupar loop de render",
+    "description": "Segundo grupo do canvas.",
     "autosaved": false,
-    "createdAt": "2026-10-31T21:21:24.659Z",
-    "updatedAt": "2026-10-31T21:21:24.659Z"
+    "createdAt": "2026-10-31T21:48:54.133Z",
+    "updatedAt": "2026-10-31T21:48:54.133Z"
   },
-  "activeVersionId": "71ea7c4b-4da4-446f-854f-a6f4c7e7770f",
+  "activeVersionId": "15e1068a-a258-433b-949a-e06bc2a52c2e",
   "connections": {
     "Webhook — Renderizar Job": {
       "main": [
@@ -1400,22 +1459,33 @@
         ]
       ]
     },
-    "Preparar Lote": {
+    "Ajustar Preview": {
       "main": [
         [
           {
-            "node": "Ajustar Preview",
+            "node": "Loop: 1 por vez",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Ajustar Preview": {
+    "Preparar Lote": {
       "main": [
         [
           {
-            "node": "Loop: 1 por vez",
+            "node": "Preservar Linhas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preservar Linhas": {
+      "main": [
+        [
+          {
+            "node": "Ajustar Preview",
             "type": "main",
             "index": 0
           }
@@ -1431,7 +1501,40 @@
     "builderVariant": "mcp"
   },
   "name": "Lyrics Render Job",
-  "nodeGroups": [],
+  "nodeGroups": [
+    {
+      "id": "31aa04d4-4f69-4abd-890e-e44748e0ce43",
+      "name": "Preparar render",
+      "nodeIds": [
+        "62dbd016-2795-4a3f-a196-4f01af2cfd3e",
+        "44c69505-a797-4f59-8fc7-3317f7007b3d",
+        "f2ffa590-ab89-4c27-a923-e26298b512f6",
+        "7e835acf-9568-40c9-9fdb-2cc119c1d242",
+        "a87f4e4e-9106-4a9f-8528-61a0c79752a6",
+        "43e6981b-21ec-4f71-aafc-90b139c0a099",
+        "29fc05b3-66dd-41de-81cd-f99e4961621a",
+        "a9a47c2f-ab13-485a-857f-01d720e5ed48",
+        "792cd9e5-6910-4a52-9781-33e26ce2d042"
+      ],
+      "description": "Baixa job.json + original, lê a timeline salva, monta o lote e prepara a prévia."
+    },
+    {
+      "id": "23278034-0e35-42e7-9a6b-93115e9b7556",
+      "name": "Renderizar lote",
+      "nodeIds": [
+        "dc964b8a-df1c-493e-9688-e16ad4b106ea",
+        "018233df-213c-4463-8dbe-68018d5ef2f9",
+        "55558f90-c705-4d17-89c8-490714904365",
+        "a6acbe48-a19c-407e-b747-ec9f00b5a610",
+        "74832e80-1a4c-4e72-a696-4278750ece17",
+        "7c936f63-79fa-436d-b1dd-00711b38727d",
+        "2095b299-3d7d-4e6b-b975-8da3e7067cbc",
+        "e97d9682-69c3-4db7-a598-20215a39bee2",
+        "d895a60a-4578-4cf3-8698-a85e7eab314c"
+      ],
+      "description": "Loop sequencial: renderiza, sobe para o S3, grava em lyric_renders e trata erros."
+    }
+  ],
   "nodes": [
     {
       "id": "8674efdc-79ef-4ed0-8fc1-a04e2dc53d48",
@@ -1576,7 +1679,8 @@
           "id": "VrwLLnraLOyd7d2l",
           "name": "S3 account SeaweedFS LOCAL"
         }
-      }
+      },
+      "executeOnce": true
     },
     {
       "id": "29fc05b3-66dd-41de-81cd-f99e4961621a",
@@ -2347,6 +2451,20 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst first = items[0].json || {};\nif (String(first.is_preview) !== 'true') return items;\nlet backgroundMode = String(first.background_mode || 'none');\nlet backgroundKey = first.background_key || '';\nlet backgroundFile = first.background_file || '';\nif (backgroundMode === 'none') {\n  const mime = String($('Ler Job').first().json.source?.mime || '');\n  if (mime.startsWith('video/')) {\n    backgroundMode = 'source';\n  } else {\n    const available = $('Listar Backgrounds').all()\n      .map((item) => item.json.Key || item.json.key || '')\n      .filter((key) => ['.mp4', '.mov', '.webm', '.m4v'].some((ext) => key.toLowerCase().endsWith(ext)))\n      .sort();\n    if (available.length) {\n      backgroundMode = 'fixed';\n      backgroundKey = available[0];\n      backgroundFile = available[0];\n    }\n  }\n}\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    background_mode: backgroundMode,\n    background_key: backgroundKey,\n    background_file: backgroundFile,\n  },\n}));"
       }
+    },
+    {
+      "id": "a9a47c2f-ab13-485a-857f-01d720e5ed48",
+      "name": "Preservar Linhas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        368
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const job = $('Ler Job').first().json || {};\nconst timeline = job.timeline || {};\nconst draft = job.draft || {};\nconst source = (Array.isArray(timeline.words) && timeline.words.length\n  ? timeline.words\n  : (Array.isArray(draft.words) ? draft.words : []));\nconst hasLine = source.some((word) => word && word.line !== null && word.line !== undefined && word.line !== '');\nif (!hasLine && Array.isArray(timeline.lines) && timeline.lines.length) {\n  timeline.lines.forEach((line, lineIndex) => {\n    const start = Number(line.word_start);\n    const end = Number(line.word_end);\n    if (!Number.isFinite(start) || !Number.isFinite(end)) return;\n    for (let index = start; index < end && index < source.length; index += 1) {\n      if (source[index] && (source[index].line === null || source[index].line === undefined)) {\n        source[index] = { ...source[index], line: lineIndex };\n      }\n    }\n  });\n}\nconst words = source\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({\n    word: String(word.word || word.text),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: word.line === null || word.line === undefined || word.line === ''\n      ? null\n      : (Number.isFinite(Number(word.line)) ? Number(word.line) : null),\n  }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!words.length) return $input.all();\nconst transcript = JSON.stringify(words);\nreturn $input.all().map((item) => ({ json: { ...item.json, transcript_data: transcript } }));"
+      }
     }
   ],
   "pinData": null,
@@ -2369,6 +2487,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-31T21:21:24.441Z",
-  "versionId": "71ea7c4b-4da4-446f-854f-a6f4c7e7770f"
+  "updatedAt": "2026-10-31T21:48:54.130Z",
+  "versionId": "15e1068a-a258-433b-949a-e06bc2a52c2e"
 }
