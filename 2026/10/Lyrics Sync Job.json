@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "870034a7-c684-495d-9ff0-c9009ba5681e",
+    "versionId": "c89bf0a8-363a-4a55-a369-a8bf27982bbc",
     "workflowId": "yrYxHpFfLkjApj66",
     "nodes": [
       {
@@ -264,15 +264,29 @@
         ]
       }
     },
-    "nodeGroups": [],
+    "nodeGroups": [
+      {
+        "id": "43153f3e-4f55-4be4-aa0c-3f7ef938223a",
+        "name": "Preparar job",
+        "nodeIds": [
+          "e96f9da9-30ab-4c8f-bc66-1321122e5171",
+          "a62b3577-b714-4b50-b130-5971f06b8d13",
+          "5e7a85aa-8f1e-4ae9-b0ee-1ea3df4b8f57",
+          "b333ca03-2ce7-49bb-8501-cbba0e7bb515",
+          "24ee8ac4-8d4f-4810-ba80-e84fdf07e3dc",
+          "f497edda-fee3-4a6f-aad4-a30be3809608"
+        ],
+        "description": "Salva o original, transcreve e grava jobs/<id>/job.json para o editor."
+      }
+    ],
     "authors": "n8n n8n (via MCP)",
-    "name": "Inferir MIME pela extensão",
-    "description": "Uploads chegam como application/octet-stream; o job agora grava video/* ou audio/* correto.",
+    "name": "Agrupar preparação do job",
+    "description": "Organiza o canvas em um grupo único de preparação.",
     "autosaved": false,
-    "createdAt": "2026-10-31T21:31:45.844Z",
-    "updatedAt": "2026-10-31T21:31:45.844Z"
+    "createdAt": "2026-10-31T21:48:49.691Z",
+    "updatedAt": "2026-10-31T21:48:49.691Z"
   },
-  "activeVersionId": "870034a7-c684-495d-9ff0-c9009ba5681e",
+  "activeVersionId": "c89bf0a8-363a-4a55-a369-a8bf27982bbc",
   "connections": {
     "Webhook — Novo Job (Sync)": {
       "main": [
@@ -360,7 +374,21 @@
     "builderVariant": "mcp"
   },
   "name": "Lyrics Sync Job",
-  "nodeGroups": [],
+  "nodeGroups": [
+    {
+      "id": "43153f3e-4f55-4be4-aa0c-3f7ef938223a",
+      "name": "Preparar job",
+      "nodeIds": [
+        "e96f9da9-30ab-4c8f-bc66-1321122e5171",
+        "a62b3577-b714-4b50-b130-5971f06b8d13",
+        "5e7a85aa-8f1e-4ae9-b0ee-1ea3df4b8f57",
+        "b333ca03-2ce7-49bb-8501-cbba0e7bb515",
+        "24ee8ac4-8d4f-4810-ba80-e84fdf07e3dc",
+        "f497edda-fee3-4a6f-aad4-a30be3809608"
+      ],
+      "description": "Salva o original, transcreve e grava jobs/<id>/job.json para o editor."
+    }
+  ],
   "nodes": [
     {
       "id": "0e6fcc5f-4a90-49ba-88e7-8380280dc2d3",
@@ -563,6 +591,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-31T21:31:45.842Z",
-  "versionId": "870034a7-c684-495d-9ff0-c9009ba5681e"
+  "updatedAt": "2026-10-31T21:48:49.688Z",
+  "versionId": "c89bf0a8-363a-4a55-a369-a8bf27982bbc"
 }
