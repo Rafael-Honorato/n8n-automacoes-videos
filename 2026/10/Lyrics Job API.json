@@ -1,0 +1,1070 @@
+{
+  "active": true,
+  "activeVersion": {
+    "versionId": "a380fa18-45f5-429e-a34f-d819da5909f2",
+    "workflowId": "Z47eTb2JlOKlLHbh",
+    "nodes": [
+      {
+        "id": "20310ac2-fc81-498b-a255-290eaabe671c",
+        "name": "Webhook — Ler Job",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "GET",
+          "path": "lyric-job",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "700802ac-676c-4efa-a50b-f2a68b4fd89a"
+      },
+      {
+        "id": "45ce7029-42aa-4fa5-84d0-dd1c7092e6c5",
+        "name": "Ler ID",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const query = $input.first().json.query || {};\nconst id = String(query.id || query.jobId || '').trim();\nif (!/^[0-9a-zA-Z_-]{1,64}$/.test(id)) throw new Error('Informe ?id=<jobId>.');\nreturn { json: { jobId: id } };"
+        }
+      },
+      {
+        "id": "5ef31e6d-a79a-4645-bc7b-5ad75c755941",
+        "name": "Baixar Job",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "download",
+          "bucketName": "lyrics",
+          "fileKey": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+          "binaryPropertyName": "data"
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "2d8b75c4-dcf0-4c17-8071-e0014372ad83",
+        "name": "Montar Job",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const input = $input.first();\nconst text = input.json.jobText;\nif (!text) throw new Error('job.json não encontrado.');\nconst job = JSON.parse(text);\nreturn { json: {\n  status: 'success',\n  job,\n  media_url: 'http://localhost:8333/lyrics/' + job.source.key,\n  revision: job.timeline?.revision || 0,\n} };"
+        }
+      },
+      {
+        "id": "8940c3ea-158c-4a87-893e-8339e6ede481",
+        "name": "Responder Job",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "dd6f2cc4-6a76-4670-ba05-4e012521adc4",
+        "name": "Webhook — Salvar Timeline",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          320
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "lyric-job-save",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "1f8c683d-fe8b-4b56-b634-f75abaa7a43a"
+      },
+      {
+        "id": "74ce56a4-5180-4db8-98db-11d704273233",
+        "name": "Normalizar Timeline",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          320
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const payload = $input.first().json.body || $input.first().json;\nconst jobId = String(payload.jobId || payload.job_id || '').trim();\nif (!/^[0-9a-zA-Z_-]{1,64}$/.test(jobId)) throw new Error('jobId inválido.');\nconst timeline = payload.timeline || {};\nconst words = Array.isArray(timeline.words) ? timeline.words : [];\nconst lines = Array.isArray(timeline.lines) ? timeline.lines : [];\nconst cleanWords = words\n  .map((word) => ({\n    word: String(word.word || word.text || '').trim(),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: Number.isFinite(Number(word.line)) ? Number(word.line) : null,\n    score: word.score === null || word.score === undefined ? null : Number(word.score),\n    interpolated: Boolean(word.interpolated),\n  }))\n  .filter((word) => word.word && Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!cleanWords.length) throw new Error('Timeline sem palavras válidas.');\nconst cleanLines = lines.map((line, index) => ({\n  index,\n  text: String(line.text || ''),\n  start: Number.isFinite(Number(line.start)) ? Number(line.start) : null,\n  end: Number.isFinite(Number(line.end)) ? Number(line.end) : null,\n  word_start: Number.isFinite(Number(line.word_start)) ? Number(line.word_start) : null,\n  word_end: Number.isFinite(Number(line.word_end)) ? Number(line.word_end) : null,\n}));\nif (cleanLines.length) {\n  cleanLines.forEach((line, lineIndex) => {\n    if (line.word_start === null || line.word_end === null) return;\n    for (let index = line.word_start; index < line.word_end && index < cleanWords.length; index += 1) {\n      if (cleanWords[index].line === null) cleanWords[index].line = lineIndex;\n    }\n  });\n}\nreturn { json: { jobId, baseRevision: Number(payload.baseRevision || payload.base_revision || 0), timeline: { words: cleanWords, lines: cleanLines } } };"
+        }
+      },
+      {
+        "id": "b0317d89-79e0-42b9-ac72-bbfcaab9a576",
+        "name": "Baixar Job 1",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          448,
+          320
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "download",
+          "bucketName": "lyrics",
+          "fileKey": "={{ \"jobs/\" + $(\"Normalizar Timeline\").first().json.jobId + \"/job.json\" }}",
+          "binaryPropertyName": "data"
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "acbf39f8-6b73-411b-94fd-236c73a5abc2",
+        "name": "Mesclar Timeline",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          320
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const input = $input.first();\nconst request = $('Normalizar Timeline').first().json;\nconst text = input.json.jobText;\nif (!text) throw new Error('job.json não encontrado.');\nconst job = JSON.parse(text);\nconst currentRevision = Number(job.timeline?.revision || 0);\nconst conflict = Number(request.baseRevision || 0) !== currentRevision;\nif (conflict) {\n  return { json: { conflict: true, revision: currentRevision, message: 'A timeline mudou em outra aba. Recarregue o job antes de salvar.' } };\n}\nconst revision = currentRevision + 1;\nconst savedAt = new Date().toISOString();\njob.timeline = { revision, saved_at: savedAt, words: request.timeline.words, lines: request.timeline.lines };\njob.status = 'synced';\njob.updated_at = savedAt;\nconst jobPayload = JSON.stringify(job, null, 2);\nconst timelinePayload = JSON.stringify({ jobId: request.jobId, revision, saved_at: savedAt, words: request.timeline.words, lines: request.timeline.lines }, null, 2);\nreturn {\n  json: { conflict: false, revision, savedAt, jobId: request.jobId, job },\n  binary: {\n    data: { data: Buffer.from(jobPayload, 'utf8').toString('base64'), mimeType: 'application/json', fileName: 'job.json' },\n    timeline: { data: Buffer.from(timelinePayload, 'utf8').toString('base64'), mimeType: 'application/json', fileName: 'timeline.json' },\n  },\n};"
+        }
+      },
+      {
+        "id": "4f0eae6c-ef6e-4795-8a47-e837749d6530",
+        "name": "Conflito?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          896,
+          320
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.conflict }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "rightValue": ""
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "d338ace4-d33e-408f-838c-e2ec16e6aad5",
+        "name": "Responder Conflito",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          1120,
+          224
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ status: \"conflict\", revision: $json.revision, message: $json.message }) }}",
+          "options": {
+            "responseCode": 409,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "b2599a4d-28f7-4a2f-9e7c-92212d90712c",
+        "name": "Salvar Histórico",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1120,
+          416
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $(\"Mesclar Timeline\").first().json.jobId + \"/timeline.\" + $(\"Mesclar Timeline\").first().json.revision + \".json\" }}",
+          "binaryPropertyName": "timeline",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "6ed0eb08-e31a-4498-96c0-bdcb9004e660",
+        "name": "Salvar Job",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1344,
+          416
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $(\"Mesclar Timeline\").first().json.jobId + \"/job.json\" }}",
+          "binaryPropertyName": "data",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "563e3280-dc08-45a0-8d1f-3782d15462a4",
+        "name": "Responder Salvo",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          1568,
+          416
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ status: \"success\", revision: $(\"Mesclar Timeline\").first().json.revision, saved_at: $(\"Mesclar Timeline\").first().json.savedAt }) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "498c7032-69ab-4754-8e40-fda132c12319",
+        "name": "Extrair Job",
+        "type": "n8n-nodes-base.extractFromFile",
+        "typeVersion": 1.1,
+        "position": [
+          560,
+          0
+        ],
+        "parameters": {
+          "operation": "text",
+          "binaryPropertyName": "data",
+          "destinationKey": "jobText",
+          "options": {}
+        }
+      },
+      {
+        "id": "2eb4c4bc-d830-4450-a1be-703900fee794",
+        "name": "Extrair Job Salvo",
+        "type": "n8n-nodes-base.extractFromFile",
+        "typeVersion": 1.1,
+        "position": [
+          560,
+          220
+        ],
+        "parameters": {
+          "operation": "text",
+          "binaryPropertyName": "data",
+          "destinationKey": "jobText",
+          "options": {}
+        }
+      },
+      {
+        "id": "66a84f2e-a636-4815-a11b-02b46c405aff",
+        "name": "Reanexar Job",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1100,
+          220
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const merged = $('Mesclar Timeline').first();\nreturn { json: merged.json, binary: merged.binary };"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook — Ler Job": {
+        "main": [
+          [
+            {
+              "node": "Ler ID",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Ler ID": {
+        "main": [
+          [
+            {
+              "node": "Baixar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Montar Job": {
+        "main": [
+          [
+            {
+              "node": "Responder Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Webhook — Salvar Timeline": {
+        "main": [
+          [
+            {
+              "node": "Normalizar Timeline",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Normalizar Timeline": {
+        "main": [
+          [
+            {
+              "node": "Baixar Job 1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Mesclar Timeline": {
+        "main": [
+          [
+            {
+              "node": "Conflito?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Conflito?": {
+        "main": [
+          [
+            {
+              "node": "Responder Conflito",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Salvar Histórico",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Salvar Job": {
+        "main": [
+          [
+            {
+              "node": "Responder Salvo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Baixar Job": {
+        "main": [
+          [
+            {
+              "node": "Extrair Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extrair Job": {
+        "main": [
+          [
+            {
+              "node": "Montar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Baixar Job 1": {
+        "main": [
+          [
+            {
+              "node": "Extrair Job Salvo",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extrair Job Salvo": {
+        "main": [
+          [
+            {
+              "node": "Mesclar Timeline",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Salvar Histórico": {
+        "main": [
+          [
+            {
+              "node": "Reanexar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Reanexar Job": {
+        "main": [
+          [
+            {
+              "node": "Salvar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "n8n n8n (via MCP)",
+    "name": "Inferir line pelos ranges quando ausente",
+    "description": "Compatibilidade com timelines antigas que não tinham o campo line em cada palavra.",
+    "autosaved": false,
+    "createdAt": "2026-10-31T21:20:06.785Z",
+    "updatedAt": "2026-10-31T21:20:06.785Z"
+  },
+  "activeVersionId": "a380fa18-45f5-429e-a34f-d819da5909f2",
+  "connections": {
+    "Webhook — Ler Job": {
+      "main": [
+        [
+          {
+            "node": "Ler ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler ID": {
+      "main": [
+        [
+          {
+            "node": "Baixar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar Job": {
+      "main": [
+        [
+          {
+            "node": "Responder Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook — Salvar Timeline": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Timeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Timeline": {
+      "main": [
+        [
+          {
+            "node": "Baixar Job 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mesclar Timeline": {
+      "main": [
+        [
+          {
+            "node": "Conflito?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conflito?": {
+      "main": [
+        [
+          {
+            "node": "Responder Conflito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Salvar Histórico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Job": {
+      "main": [
+        [
+          {
+            "node": "Responder Salvo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar Job": {
+      "main": [
+        [
+          {
+            "node": "Extrair Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Job": {
+      "main": [
+        [
+          {
+            "node": "Montar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baixar Job 1": {
+      "main": [
+        [
+          {
+            "node": "Extrair Job Salvo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Job Salvo": {
+      "main": [
+        [
+          {
+            "node": "Mesclar Timeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Histórico": {
+      "main": [
+        [
+          {
+            "node": "Reanexar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reanexar Job": {
+      "main": [
+        [
+          {
+            "node": "Salvar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-31T21:10:01.208Z",
+  "id": "Z47eTb2JlOKlLHbh",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Lyrics Job API",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "20310ac2-fc81-498b-a255-290eaabe671c",
+      "name": "Webhook — Ler Job",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "lyric-job",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "700802ac-676c-4efa-a50b-f2a68b4fd89a"
+    },
+    {
+      "id": "45ce7029-42aa-4fa5-84d0-dd1c7092e6c5",
+      "name": "Ler ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const query = $input.first().json.query || {};\nconst id = String(query.id || query.jobId || '').trim();\nif (!/^[0-9a-zA-Z_-]{1,64}$/.test(id)) throw new Error('Informe ?id=<jobId>.');\nreturn { json: { jobId: id } };"
+      }
+    },
+    {
+      "id": "5ef31e6d-a79a-4645-bc7b-5ad75c755941",
+      "name": "Baixar Job",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "bucketName": "lyrics",
+        "fileKey": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+        "binaryPropertyName": "data"
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "2d8b75c4-dcf0-4c17-8071-e0014372ad83",
+      "name": "Montar Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first();\nconst text = input.json.jobText;\nif (!text) throw new Error('job.json não encontrado.');\nconst job = JSON.parse(text);\nreturn { json: {\n  status: 'success',\n  job,\n  media_url: 'http://localhost:8333/lyrics/' + job.source.key,\n  revision: job.timeline?.revision || 0,\n} };"
+      }
+    },
+    {
+      "id": "8940c3ea-158c-4a87-893e-8339e6ede481",
+      "name": "Responder Job",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "dd6f2cc4-6a76-4670-ba05-4e012521adc4",
+      "name": "Webhook — Salvar Timeline",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        320
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lyric-job-save",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "1f8c683d-fe8b-4b56-b634-f75abaa7a43a"
+    },
+    {
+      "id": "74ce56a4-5180-4db8-98db-11d704273233",
+      "name": "Normalizar Timeline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        320
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const payload = $input.first().json.body || $input.first().json;\nconst jobId = String(payload.jobId || payload.job_id || '').trim();\nif (!/^[0-9a-zA-Z_-]{1,64}$/.test(jobId)) throw new Error('jobId inválido.');\nconst timeline = payload.timeline || {};\nconst words = Array.isArray(timeline.words) ? timeline.words : [];\nconst lines = Array.isArray(timeline.lines) ? timeline.lines : [];\nconst cleanWords = words\n  .map((word) => ({\n    word: String(word.word || word.text || '').trim(),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: Number.isFinite(Number(word.line)) ? Number(word.line) : null,\n    score: word.score === null || word.score === undefined ? null : Number(word.score),\n    interpolated: Boolean(word.interpolated),\n  }))\n  .filter((word) => word.word && Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!cleanWords.length) throw new Error('Timeline sem palavras válidas.');\nconst cleanLines = lines.map((line, index) => ({\n  index,\n  text: String(line.text || ''),\n  start: Number.isFinite(Number(line.start)) ? Number(line.start) : null,\n  end: Number.isFinite(Number(line.end)) ? Number(line.end) : null,\n  word_start: Number.isFinite(Number(line.word_start)) ? Number(line.word_start) : null,\n  word_end: Number.isFinite(Number(line.word_end)) ? Number(line.word_end) : null,\n}));\nif (cleanLines.length) {\n  cleanLines.forEach((line, lineIndex) => {\n    if (line.word_start === null || line.word_end === null) return;\n    for (let index = line.word_start; index < line.word_end && index < cleanWords.length; index += 1) {\n      if (cleanWords[index].line === null) cleanWords[index].line = lineIndex;\n    }\n  });\n}\nreturn { json: { jobId, baseRevision: Number(payload.baseRevision || payload.base_revision || 0), timeline: { words: cleanWords, lines: cleanLines } } };"
+      }
+    },
+    {
+      "id": "b0317d89-79e0-42b9-ac72-bbfcaab9a576",
+      "name": "Baixar Job 1",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        448,
+        320
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "bucketName": "lyrics",
+        "fileKey": "={{ \"jobs/\" + $(\"Normalizar Timeline\").first().json.jobId + \"/job.json\" }}",
+        "binaryPropertyName": "data"
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "acbf39f8-6b73-411b-94fd-236c73a5abc2",
+      "name": "Mesclar Timeline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        320
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first();\nconst request = $('Normalizar Timeline').first().json;\nconst text = input.json.jobText;\nif (!text) throw new Error('job.json não encontrado.');\nconst job = JSON.parse(text);\nconst currentRevision = Number(job.timeline?.revision || 0);\nconst conflict = Number(request.baseRevision || 0) !== currentRevision;\nif (conflict) {\n  return { json: { conflict: true, revision: currentRevision, message: 'A timeline mudou em outra aba. Recarregue o job antes de salvar.' } };\n}\nconst revision = currentRevision + 1;\nconst savedAt = new Date().toISOString();\njob.timeline = { revision, saved_at: savedAt, words: request.timeline.words, lines: request.timeline.lines };\njob.status = 'synced';\njob.updated_at = savedAt;\nconst jobPayload = JSON.stringify(job, null, 2);\nconst timelinePayload = JSON.stringify({ jobId: request.jobId, revision, saved_at: savedAt, words: request.timeline.words, lines: request.timeline.lines }, null, 2);\nreturn {\n  json: { conflict: false, revision, savedAt, jobId: request.jobId, job },\n  binary: {\n    data: { data: Buffer.from(jobPayload, 'utf8').toString('base64'), mimeType: 'application/json', fileName: 'job.json' },\n    timeline: { data: Buffer.from(timelinePayload, 'utf8').toString('base64'), mimeType: 'application/json', fileName: 'timeline.json' },\n  },\n};"
+      }
+    },
+    {
+      "id": "4f0eae6c-ef6e-4795-8a47-e837749d6530",
+      "name": "Conflito?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        320
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.conflict }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "d338ace4-d33e-408f-838c-e2ec16e6aad5",
+      "name": "Responder Conflito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1120,
+        224
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"conflict\", revision: $json.revision, message: $json.message }) }}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "b2599a4d-28f7-4a2f-9e7c-92212d90712c",
+      "name": "Salvar Histórico",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        416
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $(\"Mesclar Timeline\").first().json.jobId + \"/timeline.\" + $(\"Mesclar Timeline\").first().json.revision + \".json\" }}",
+        "binaryPropertyName": "timeline",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "6ed0eb08-e31a-4498-96c0-bdcb9004e660",
+      "name": "Salvar Job",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        416
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $(\"Mesclar Timeline\").first().json.jobId + \"/job.json\" }}",
+        "binaryPropertyName": "data",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "563e3280-dc08-45a0-8d1f-3782d15462a4",
+      "name": "Responder Salvo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1568,
+        416
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"success\", revision: $(\"Mesclar Timeline\").first().json.revision, saved_at: $(\"Mesclar Timeline\").first().json.savedAt }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "498c7032-69ab-4754-8e40-fda132c12319",
+      "name": "Extrair Job",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "destinationKey": "jobText",
+        "options": {}
+      }
+    },
+    {
+      "id": "2eb4c4bc-d830-4450-a1be-703900fee794",
+      "name": "Extrair Job Salvo",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        220
+      ],
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "data",
+        "destinationKey": "jobText",
+        "options": {}
+      }
+    },
+    {
+      "id": "66a84f2e-a636-4815-a11b-02b46c405aff",
+      "name": "Reanexar Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        220
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const merged = $('Mesclar Timeline').first();\nreturn { json: merged.json, binary: merged.binary };"
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "Z47eTb2JlOKlLHbh",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-31T21:10:01.211Z",
+      "updatedAt": "2026-10-31T21:10:01.211Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 2,
+  "updatedAt": "2026-10-31T21:20:06.773Z",
+  "versionId": "a380fa18-45f5-429e-a34f-d819da5909f2"
+}
