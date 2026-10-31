@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "24f5b3b0-a438-408b-b935-d045bff76162",
+    "versionId": "e8e381c5-91a7-459b-bab0-b42f0fb79797",
     "workflowId": "6UpxOdSjmtGxpq3g",
     "nodes": [
       {
@@ -999,6 +999,81 @@
           "mode": "runOnceForAllItems",
           "jsCode": "const transcript = $('Transcrever (WhisperX)').first().json || {};\nconst duration = Number(transcript.duration || transcript.metadata?.duration || 0);\nif (!Number.isFinite(duration) || duration <= 0) return $input.all();\nreturn $input.all().map((item) => ({\n  json: { ...item.json, duration: Number(duration.toFixed(3)) },\n}));"
         }
+      },
+      {
+        "id": "84369a09-2ede-48bc-9d8c-329406a01456",
+        "name": "Preparar Limpeza",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          192,
+          120
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const input = $input.first().json || {};\nconst xml = String(input.data || input.body || '');\nconst keys = [...xml.matchAll(/<Key>([\\s\\S]*?)<\\/Key>/g)].map((match) => match[1]);\nconst filtered = keys.filter(\n  (key) => key.startsWith('jobs/') && !key.endsWith('/'),\n);\nreturn filtered.map((key) => ({ json: { key } }));"
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "7f4b3a44-9807-4416-92ac-6b41ac65406d",
+        "name": "Limpar Jobs",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          416,
+          120
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "delete",
+          "bucketName": "lyrics",
+          "fileKey": "={{ $json.key }}",
+          "options": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "056721f5-a150-4024-afd4-a6a82b34dddc",
+        "name": "Listar Jobs (HTTP)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          -32,
+          120
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "http://seaweedfs:8333/lyrics",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "list-type",
+                "value": "2"
+              },
+              {
+                "name": "prefix",
+                "value": "jobs/"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            },
+            "timeout": 30000
+          }
+        },
+        "onError": "continueRegularOutput"
       }
     ],
     "connections": {
@@ -1029,6 +1104,11 @@
           [
             {
               "node": "Transcrever (WhisperX)",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Listar Jobs (HTTP)",
               "type": "main",
               "index": 0
             }
@@ -1224,17 +1304,50 @@
             }
           ]
         ]
+      },
+      "Preparar Limpeza": {
+        "main": [
+          [
+            {
+              "node": "Limpar Jobs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Listar Jobs (HTTP)": {
+        "main": [
+          [
+            {
+              "node": "Preparar Limpeza",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
-    "nodeGroups": [],
+    "nodeGroups": [
+      {
+        "id": "8845a4c1-5b15-4650-8d2e-209cf33bac8c",
+        "name": "Limpeza",
+        "nodeIds": [
+          "056721f5-a150-4024-afd4-a6a82b34dddc",
+          "84369a09-2ede-48bc-9d8c-329406a01456",
+          "7f4b3a44-9807-4416-92ac-6b41ac65406d"
+        ],
+        "description": "Apaga jobs/ antigos no S3 para não acumular lixo."
+      }
+    ],
     "authors": "n8n n8n (via MCP)",
-    "name": "Duração real do áudio no lote",
-    "description": "Usa a duração do WhisperX em vez de última palavra + 0,5s, evitando cortar o final da música.",
+    "name": "Ajustar grupo de limpeza",
+    "description": "Troca o nó S3 pelo HTTP.",
     "autosaved": false,
-    "createdAt": "2026-10-31T21:30:52.322Z",
-    "updatedAt": "2026-10-31T21:30:52.322Z"
+    "createdAt": "2026-10-31T22:42:14.389Z",
+    "updatedAt": "2026-10-31T22:42:14.389Z"
   },
-  "activeVersionId": "24f5b3b0-a438-408b-b935-d045bff76162",
+  "activeVersionId": "e8e381c5-91a7-459b-bab0-b42f0fb79797",
   "connections": {
     "Webhook — Novo Job": {
       "main": [
@@ -1263,6 +1376,11 @@
         [
           {
             "node": "Transcrever (WhisperX)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Listar Jobs (HTTP)",
             "type": "main",
             "index": 0
           }
@@ -1458,6 +1576,28 @@
           }
         ]
       ]
+    },
+    "Preparar Limpeza": {
+      "main": [
+        [
+          {
+            "node": "Limpar Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Jobs (HTTP)": {
+      "main": [
+        [
+          {
+            "node": "Preparar Limpeza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "createdAt": "2026-10-28T20:30:04.509Z",
@@ -1469,7 +1609,18 @@
     "templateCredsSetupCompleted": true
   },
   "name": "Lyrics Upload Job",
-  "nodeGroups": [],
+  "nodeGroups": [
+    {
+      "id": "8845a4c1-5b15-4650-8d2e-209cf33bac8c",
+      "name": "Limpeza",
+      "nodeIds": [
+        "056721f5-a150-4024-afd4-a6a82b34dddc",
+        "84369a09-2ede-48bc-9d8c-329406a01456",
+        "7f4b3a44-9807-4416-92ac-6b41ac65406d"
+      ],
+      "description": "Apaga jobs/ antigos no S3 para não acumular lixo."
+    }
+  ],
   "nodes": [
     {
       "parameters": {
@@ -2466,6 +2617,81 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const transcript = $('Transcrever (WhisperX)').first().json || {};\nconst duration = Number(transcript.duration || transcript.metadata?.duration || 0);\nif (!Number.isFinite(duration) || duration <= 0) return $input.all();\nreturn $input.all().map((item) => ({\n  json: { ...item.json, duration: Number(duration.toFixed(3)) },\n}));"
       }
+    },
+    {
+      "id": "84369a09-2ede-48bc-9d8c-329406a01456",
+      "name": "Preparar Limpeza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json || {};\nconst xml = String(input.data || input.body || '');\nconst keys = [...xml.matchAll(/<Key>([\\s\\S]*?)<\\/Key>/g)].map((match) => match[1]);\nconst filtered = keys.filter(\n  (key) => key.startsWith('jobs/') && !key.endsWith('/'),\n);\nreturn filtered.map((key) => ({ json: { key } }));"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "7f4b3a44-9807-4416-92ac-6b41ac65406d",
+      "name": "Limpar Jobs",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        416,
+        120
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "delete",
+        "bucketName": "lyrics",
+        "fileKey": "={{ $json.key }}",
+        "options": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "056721f5-a150-4024-afd4-a6a82b34dddc",
+      "name": "Listar Jobs (HTTP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -32,
+        120
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://seaweedfs:8333/lyrics",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "list-type",
+              "value": "2"
+            },
+            {
+              "name": "prefix",
+              "value": "jobs/"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "onError": "continueRegularOutput"
     }
   ],
   "pinData": {
@@ -2541,6 +2767,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-31T21:30:52.317Z",
-  "versionId": "24f5b3b0-a438-408b-b935-d045bff76162"
+  "updatedAt": "2026-10-31T22:42:14.387Z",
+  "versionId": "e8e381c5-91a7-459b-bab0-b42f0fb79797"
 }
