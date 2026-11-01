@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "15e1068a-a258-433b-949a-e06bc2a52c2e",
+    "versionId": "90f2e77e-d661-426d-bf6e-04e16f251b46",
     "workflowId": "SVu7iWCc98dcJqqW",
     "nodes": [
       {
@@ -933,6 +933,118 @@
           "mode": "runOnceForAllItems",
           "jsCode": "const job = $('Ler Job').first().json || {};\nconst timeline = job.timeline || {};\nconst draft = job.draft || {};\nconst source = (Array.isArray(timeline.words) && timeline.words.length\n  ? timeline.words\n  : (Array.isArray(draft.words) ? draft.words : []));\nconst hasLine = source.some((word) => word && word.line !== null && word.line !== undefined && word.line !== '');\nif (!hasLine && Array.isArray(timeline.lines) && timeline.lines.length) {\n  timeline.lines.forEach((line, lineIndex) => {\n    const start = Number(line.word_start);\n    const end = Number(line.word_end);\n    if (!Number.isFinite(start) || !Number.isFinite(end)) return;\n    for (let index = start; index < end && index < source.length; index += 1) {\n      if (source[index] && (source[index].line === null || source[index].line === undefined)) {\n        source[index] = { ...source[index], line: lineIndex };\n      }\n    }\n  });\n}\nconst words = source\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({\n    word: String(word.word || word.text),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: word.line === null || word.line === undefined || word.line === ''\n      ? null\n      : (Number.isFinite(Number(word.line)) ? Number(word.line) : null),\n  }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!words.length) return $input.all();\nconst transcript = JSON.stringify(words);\nreturn $input.all().map((item) => ({ json: { ...item.json, transcript_data: transcript } }));"
         }
+      },
+      {
+        "id": "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+        "name": "Verificar Lote",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1792,
+          620
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const job = $('Ler Job').first()?.json || {};\nconst request = $('Ler Pedido').first()?.json || {};\nconst jobId = String(job.jobId || request.jobId || '');\nconst preview = Boolean(job.preview);\nconst executionId = String($execution.id);\nif (preview || !jobId) return [];\nreturn [{ json: { jobId, executionId } }];"
+        }
+      },
+      {
+        "id": "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+        "name": "Listar Resultados do Job",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          2032,
+          620
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "rxL2UuUtcY4vm68c"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "job_id",
+                "condition": "eq",
+                "keyValue": "={{ $json.jobId }}"
+              }
+            ]
+          },
+          "returnAll": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+        "name": "Selecionar Lote Anterior",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2272,
+          620
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const info = $('Verificar Lote').first()?.json || {};\nconst jobId = String(info.jobId || '');\nconst executionId = String(info.executionId || '');\nconst rows = $input.all().map((item) => item.json || {});\nconst current = rows.filter((row) => String(row.execution_id || '') === executionId);\nconst currentSuccess = current.filter((row) => row.status === 'success');\nconst currentErrors = current.filter((row) => row.status === 'error').length;\nif (!currentSuccess.length || currentErrors) return [];\nconst currentKeys = new Set(currentSuccess.map((row) => String(row.s3_key || '')).filter(Boolean));\nconst previous = rows.filter((row) => {\n  const rowJob = String(row.job_id || '');\n  const rowExecution = String(row.execution_id || '');\n  const rowPreview = String(row.is_preview || '') === 'true';\n  return rowJob === jobId && rowExecution !== executionId && !rowPreview;\n});\nreturn previous.map((row) => ({ json: {\n  id: row.id,\n  s3_key: String(row.s3_key || ''),\n  bucket: row.bucket || 'lyrics',\n  execution_id: row.execution_id || '',\n} }));"
+        }
+      },
+      {
+        "id": "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+        "name": "Apagar Arquivos Antigos",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          2512,
+          620
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "delete",
+          "bucketName": "lyrics",
+          "fileKey": "={{ $json.s3_key || ('sem-arquivo/' + $json.id) }}"
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "6842c406-6cfa-42a8-900a-e69a3d6e8432",
+        "name": "Apagar Linhas Antigas",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          2992,
+          620
+        ],
+        "parameters": {
+          "resource": "row",
+          "operation": "deleteRows",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "rxL2UuUtcY4vm68c"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "condition": "eq",
+                "keyValue": "={{ $json.id }}"
+              }
+            ]
+          },
+          "options": {}
+        }
       }
     ],
     "connections": {
@@ -1105,7 +1217,13 @@
       },
       "Loop: 1 por vez": {
         "main": [
-          [],
+          [
+            {
+              "node": "Verificar Lote",
+              "type": "main",
+              "index": 0
+            }
+          ],
           [
             {
               "node": "Reanexar Binário",
@@ -1191,6 +1309,44 @@
             }
           ]
         ]
+      },
+      "Verificar Lote": {
+        "main": [
+          [
+            {
+              "node": "Listar Resultados do Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Listar Resultados do Job": {
+        "main": [
+          [
+            {
+              "node": "Selecionar Lote Anterior",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Selecionar Lote Anterior": {
+        "main": [
+          [
+            {
+              "node": "Apagar Arquivos Antigos",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Apagar Linhas Antigas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [
@@ -1225,16 +1381,28 @@
           "d895a60a-4578-4cf3-8698-a85e7eab314c"
         ],
         "description": "Loop sequencial: renderiza, sobe para o S3, grava em lyric_renders e trata erros."
+      },
+      {
+        "id": "16216d48-a7e8-42ca-a55e-5ffa46ddd2bf",
+        "name": "Limpar lote anterior",
+        "nodeIds": [
+          "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+          "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+          "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+          "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+          "6842c406-6cfa-42a8-900a-e69a3d6e8432"
+        ],
+        "description": "Se o lote atual terminou sem erros, apaga os arquivos e linhas dos lotes anteriores do mesmo job."
       }
     ],
     "authors": "n8n n8n (via MCP)",
-    "name": "Agrupar loop de render",
-    "description": "Segundo grupo do canvas.",
+    "name": "Limpar lote anterior por id",
+    "description": "Data Table não suporta notEquals; apaga cada linha antiga pelo id e os arquivos em paralelo.",
     "autosaved": false,
-    "createdAt": "2026-10-31T21:48:54.133Z",
-    "updatedAt": "2026-10-31T21:48:54.133Z"
+    "createdAt": "2026-11-01T03:17:57.880Z",
+    "updatedAt": "2026-11-01T03:17:57.880Z"
   },
-  "activeVersionId": "15e1068a-a258-433b-949a-e06bc2a52c2e",
+  "activeVersionId": "90f2e77e-d661-426d-bf6e-04e16f251b46",
   "connections": {
     "Webhook — Renderizar Job": {
       "main": [
@@ -1405,7 +1573,13 @@
     },
     "Loop: 1 por vez": {
       "main": [
-        [],
+        [
+          {
+            "node": "Verificar Lote",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Reanexar Binário",
@@ -1491,6 +1665,44 @@
           }
         ]
       ]
+    },
+    "Verificar Lote": {
+      "main": [
+        [
+          {
+            "node": "Listar Resultados do Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Resultados do Job": {
+      "main": [
+        [
+          {
+            "node": "Selecionar Lote Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selecionar Lote Anterior": {
+      "main": [
+        [
+          {
+            "node": "Apagar Arquivos Antigos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Apagar Linhas Antigas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "createdAt": "2026-10-31T21:11:29.141Z",
@@ -1533,6 +1745,18 @@
         "d895a60a-4578-4cf3-8698-a85e7eab314c"
       ],
       "description": "Loop sequencial: renderiza, sobe para o S3, grava em lyric_renders e trata erros."
+    },
+    {
+      "id": "16216d48-a7e8-42ca-a55e-5ffa46ddd2bf",
+      "name": "Limpar lote anterior",
+      "nodeIds": [
+        "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+        "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+        "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+        "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+        "6842c406-6cfa-42a8-900a-e69a3d6e8432"
+      ],
+      "description": "Se o lote atual terminou sem erros, apaga os arquivos e linhas dos lotes anteriores do mesmo job."
     }
   ],
   "nodes": [
@@ -2465,6 +2689,118 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const job = $('Ler Job').first().json || {};\nconst timeline = job.timeline || {};\nconst draft = job.draft || {};\nconst source = (Array.isArray(timeline.words) && timeline.words.length\n  ? timeline.words\n  : (Array.isArray(draft.words) ? draft.words : []));\nconst hasLine = source.some((word) => word && word.line !== null && word.line !== undefined && word.line !== '');\nif (!hasLine && Array.isArray(timeline.lines) && timeline.lines.length) {\n  timeline.lines.forEach((line, lineIndex) => {\n    const start = Number(line.word_start);\n    const end = Number(line.word_end);\n    if (!Number.isFinite(start) || !Number.isFinite(end)) return;\n    for (let index = start; index < end && index < source.length; index += 1) {\n      if (source[index] && (source[index].line === null || source[index].line === undefined)) {\n        source[index] = { ...source[index], line: lineIndex };\n      }\n    }\n  });\n}\nconst words = source\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({\n    word: String(word.word || word.text),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: word.line === null || word.line === undefined || word.line === ''\n      ? null\n      : (Number.isFinite(Number(word.line)) ? Number(word.line) : null),\n  }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!words.length) return $input.all();\nconst transcript = JSON.stringify(words);\nreturn $input.all().map((item) => ({ json: { ...item.json, transcript_data: transcript } }));"
       }
+    },
+    {
+      "id": "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+      "name": "Verificar Lote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1792,
+        620
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const job = $('Ler Job').first()?.json || {};\nconst request = $('Ler Pedido').first()?.json || {};\nconst jobId = String(job.jobId || request.jobId || '');\nconst preview = Boolean(job.preview);\nconst executionId = String($execution.id);\nif (preview || !jobId) return [];\nreturn [{ json: { jobId, executionId } }];"
+      }
+    },
+    {
+      "id": "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+      "name": "Listar Resultados do Job",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2032,
+        620
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.jobId }}"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+      "name": "Selecionar Lote Anterior",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2272,
+        620
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const info = $('Verificar Lote').first()?.json || {};\nconst jobId = String(info.jobId || '');\nconst executionId = String(info.executionId || '');\nconst rows = $input.all().map((item) => item.json || {});\nconst current = rows.filter((row) => String(row.execution_id || '') === executionId);\nconst currentSuccess = current.filter((row) => row.status === 'success');\nconst currentErrors = current.filter((row) => row.status === 'error').length;\nif (!currentSuccess.length || currentErrors) return [];\nconst currentKeys = new Set(currentSuccess.map((row) => String(row.s3_key || '')).filter(Boolean));\nconst previous = rows.filter((row) => {\n  const rowJob = String(row.job_id || '');\n  const rowExecution = String(row.execution_id || '');\n  const rowPreview = String(row.is_preview || '') === 'true';\n  return rowJob === jobId && rowExecution !== executionId && !rowPreview;\n});\nreturn previous.map((row) => ({ json: {\n  id: row.id,\n  s3_key: String(row.s3_key || ''),\n  bucket: row.bucket || 'lyrics',\n  execution_id: row.execution_id || '',\n} }));"
+      }
+    },
+    {
+      "id": "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+      "name": "Apagar Arquivos Antigos",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        2512,
+        620
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "delete",
+        "bucketName": "lyrics",
+        "fileKey": "={{ $json.s3_key || ('sem-arquivo/' + $json.id) }}"
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "6842c406-6cfa-42a8-900a-e69a3d6e8432",
+      "name": "Apagar Linhas Antigas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2992,
+        620
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      }
     }
   ],
   "pinData": null,
@@ -2487,6 +2823,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-10-31T21:48:54.130Z",
-  "versionId": "15e1068a-a258-433b-949a-e06bc2a52c2e"
+  "updatedAt": "2026-11-01T03:17:57.876Z",
+  "versionId": "90f2e77e-d661-426d-bf6e-04e16f251b46"
 }
