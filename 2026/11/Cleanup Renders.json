@@ -1,0 +1,98 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Webhook Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Delete Render Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-11-01T04:15:49.721Z",
+  "id": "jiUL3lsWlkGqA1zs",
+  "isArchived": true,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Cleanup Renders",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "5371df54-17f1-4769-b2ee-5d0c724fc218",
+      "name": "Webhook Cleanup",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cleanup-renders",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "a61e8140-b578-49a2-895a-87408f3d8d8e"
+    },
+    {
+      "id": "8a5b3609-562d-4fb1-a351-7c2f625fe3c2",
+      "name": "Delete Render Row",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.body.id }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "jiUL3lsWlkGqA1zs",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-11-01T04:15:49.728Z",
+      "updatedAt": "2026-11-01T04:15:49.728Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-11-01T04:16:12.000Z",
+  "versionId": "d9d51821-f2d8-45fc-adf4-e5ac56ffddb3"
+}
