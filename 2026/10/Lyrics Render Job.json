@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "90f2e77e-d661-426d-bf6e-04e16f251b46",
+    "versionId": "eaac25ac-2427-43dc-97c3-02e74d2004a8",
     "workflowId": "SVu7iWCc98dcJqqW",
     "nodes": [
       {
@@ -1045,6 +1045,186 @@
           },
           "options": {}
         }
+      },
+      {
+        "id": "284e4b45-150d-4530-b037-c554e7db56a8",
+        "name": "Limpar Cancelamento",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1792,
+          100
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "delete",
+          "bucketName": "lyrics",
+          "fileKey": "={{ \"jobs/\" + $('Ler Job').first().json.jobId + \"/cancel.json\" }}"
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "id": "2984c6bd-82a3-4b1b-8926-824cf993e61f",
+        "name": "Checar Cancelamento",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1792,
+          900
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "getAll",
+          "bucketName": "lyrics",
+          "returnAll": true,
+          "options": {
+            "folderKey": "={{ \"jobs/\" + $('Ler Job').first().json.jobId + \"/\" }}"
+          }
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "06268dc3-c01d-4407-8683-540e9efa7b25",
+        "name": "Avaliar Cancelamento",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2032,
+          900
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "let loopItem = {};\ntry {\n  loopItem = $('Loop: 1 por vez').item.json || {};\n} catch (error) {\n  loopItem = $('Loop: 1 por vez').first().json || {};\n}\nconst items = $input.all().map((item) => item.json || {});\nconst cancel = items.some((item) =>\n  /(^|\\/)cancel\\.json$/.test(String(item.Key || item.key || \"\")),\n);\nreturn { json: { ...loopItem, cancel } };"
+        }
+      },
+      {
+        "id": "655ef011-ea06-4d5e-a2d5-6fe19d01b64b",
+        "name": "Cancelado?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2272,
+          900
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.cancel }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "rightValue": ""
+              }
+            ],
+            "combinator": "and"
+          }
+        }
+      },
+      {
+        "id": "9035b34d-c0ca-46f1-ac85-9fb7989bb788",
+        "name": "Marcar Cancelado",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2512,
+          980
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const job = $('Ler Job').first().json;\njob.status = 'canceled';\njob.canceled_at = new Date().toISOString();\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+        }
+      },
+      {
+        "id": "d758c9db-989b-46a7-92ea-4c20c2a89a43",
+        "name": "Salvar Job Cancelado",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          2752,
+          980
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "eabffed7-495e-4715-9776-d2e7aabcfa5e",
+        "name": "Parar Render",
+        "type": "n8n-nodes-base.stopAndError",
+        "typeVersion": 1,
+        "position": [
+          2992,
+          980
+        ],
+        "parameters": {
+          "errorType": "errorMessage",
+          "errorMessage": "Render cancelado pelo usuário."
+        }
+      },
+      {
+        "id": "f33dbd6b-4792-407d-b88d-c1a2226324a7",
+        "name": "Marcar Renderizando",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2032,
+          100
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const job = $('Ler Job').first().json;\njob.status = 'rendering';\ndelete job.canceled_at;\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+        }
+      },
+      {
+        "id": "ff1dd44e-6bbb-4670-a9af-93b34922be2e",
+        "name": "Salvar Job Renderizando",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          2272,
+          100
+        ],
+        "parameters": {
+          "resource": "file",
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+          "additionalFields": {}
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
       }
     ],
     "connections": {
@@ -1075,17 +1255,6 @@
           [
             {
               "node": "Baixar Job",
-              "type": "main",
-              "index": 0
-            }
-          ]
-        ]
-      },
-      "Ler Job": {
-        "main": [
-          [
-            {
-              "node": "Listar Backgrounds",
               "type": "main",
               "index": 0
             }
@@ -1226,7 +1395,7 @@
           ],
           [
             {
-              "node": "Reanexar Binário",
+              "node": "Checar Cancelamento",
               "type": "main",
               "index": 0
             }
@@ -1347,41 +1516,115 @@
             }
           ]
         ]
+      },
+      "Ler Job": {
+        "main": [
+          [
+            {
+              "node": "Limpar Cancelamento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Checar Cancelamento": {
+        "main": [
+          [
+            {
+              "node": "Avaliar Cancelamento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Avaliar Cancelamento": {
+        "main": [
+          [
+            {
+              "node": "Cancelado?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Cancelado?": {
+        "main": [
+          [
+            {
+              "node": "Marcar Cancelado",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Reanexar Binário",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Marcar Cancelado": {
+        "main": [
+          [
+            {
+              "node": "Salvar Job Cancelado",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Salvar Job Cancelado": {
+        "main": [
+          [
+            {
+              "node": "Parar Render",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limpar Cancelamento": {
+        "main": [
+          [
+            {
+              "node": "Marcar Renderizando",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Marcar Renderizando": {
+        "main": [
+          [
+            {
+              "node": "Salvar Job Renderizando",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Salvar Job Renderizando": {
+        "main": [
+          [
+            {
+              "node": "Listar Backgrounds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [
-      {
-        "id": "31aa04d4-4f69-4abd-890e-e44748e0ce43",
-        "name": "Preparar render",
-        "nodeIds": [
-          "62dbd016-2795-4a3f-a196-4f01af2cfd3e",
-          "44c69505-a797-4f59-8fc7-3317f7007b3d",
-          "f2ffa590-ab89-4c27-a923-e26298b512f6",
-          "7e835acf-9568-40c9-9fdb-2cc119c1d242",
-          "a87f4e4e-9106-4a9f-8528-61a0c79752a6",
-          "43e6981b-21ec-4f71-aafc-90b139c0a099",
-          "29fc05b3-66dd-41de-81cd-f99e4961621a",
-          "a9a47c2f-ab13-485a-857f-01d720e5ed48",
-          "792cd9e5-6910-4a52-9781-33e26ce2d042"
-        ],
-        "description": "Baixa job.json + original, lê a timeline salva, monta o lote e prepara a prévia."
-      },
-      {
-        "id": "23278034-0e35-42e7-9a6b-93115e9b7556",
-        "name": "Renderizar lote",
-        "nodeIds": [
-          "dc964b8a-df1c-493e-9688-e16ad4b106ea",
-          "018233df-213c-4463-8dbe-68018d5ef2f9",
-          "55558f90-c705-4d17-89c8-490714904365",
-          "a6acbe48-a19c-407e-b747-ec9f00b5a610",
-          "74832e80-1a4c-4e72-a696-4278750ece17",
-          "7c936f63-79fa-436d-b1dd-00711b38727d",
-          "2095b299-3d7d-4e6b-b975-8da3e7067cbc",
-          "e97d9682-69c3-4db7-a598-20215a39bee2",
-          "d895a60a-4578-4cf3-8698-a85e7eab314c"
-        ],
-        "description": "Loop sequencial: renderiza, sobe para o S3, grava em lyric_renders e trata erros."
-      },
       {
         "id": "16216d48-a7e8-42ca-a55e-5ffa46ddd2bf",
         "name": "Limpar lote anterior",
@@ -1396,13 +1639,13 @@
       }
     ],
     "authors": "n8n n8n (via MCP)",
-    "name": "Limpar lote anterior por id",
-    "description": "Data Table não suporta notEquals; apaga cada linha antiga pelo id e os arquivos em paralelo.",
+    "name": "Marcar job como rendering ao iniciar",
+    "description": "Antes do loop, o job.json passa a status rendering e perde canceled_at; o cancelamento marca canceled.",
     "autosaved": false,
-    "createdAt": "2026-11-01T03:17:57.880Z",
-    "updatedAt": "2026-11-01T03:17:57.880Z"
+    "createdAt": "2026-11-01T04:12:47.548Z",
+    "updatedAt": "2026-11-01T04:12:47.548Z"
   },
-  "activeVersionId": "90f2e77e-d661-426d-bf6e-04e16f251b46",
+  "activeVersionId": "eaac25ac-2427-43dc-97c3-02e74d2004a8",
   "connections": {
     "Webhook — Renderizar Job": {
       "main": [
@@ -1431,17 +1674,6 @@
         [
           {
             "node": "Baixar Job",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Ler Job": {
-      "main": [
-        [
-          {
-            "node": "Listar Backgrounds",
             "type": "main",
             "index": 0
           }
@@ -1582,7 +1814,7 @@
         ],
         [
           {
-            "node": "Reanexar Binário",
+            "node": "Checar Cancelamento",
             "type": "main",
             "index": 0
           }
@@ -1703,6 +1935,112 @@
           }
         ]
       ]
+    },
+    "Ler Job": {
+      "main": [
+        [
+          {
+            "node": "Limpar Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Avaliar Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avaliar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Cancelado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelado?": {
+      "main": [
+        [
+          {
+            "node": "Marcar Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reanexar Binário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Cancelado": {
+      "main": [
+        [
+          {
+            "node": "Salvar Job Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Job Cancelado": {
+      "main": [
+        [
+          {
+            "node": "Parar Render",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Marcar Renderizando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Renderizando": {
+      "main": [
+        [
+          {
+            "node": "Salvar Job Renderizando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Job Renderizando": {
+      "main": [
+        [
+          {
+            "node": "Listar Backgrounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "createdAt": "2026-10-31T21:11:29.141Z",
@@ -1714,38 +2052,6 @@
   },
   "name": "Lyrics Render Job",
   "nodeGroups": [
-    {
-      "id": "31aa04d4-4f69-4abd-890e-e44748e0ce43",
-      "name": "Preparar render",
-      "nodeIds": [
-        "62dbd016-2795-4a3f-a196-4f01af2cfd3e",
-        "44c69505-a797-4f59-8fc7-3317f7007b3d",
-        "f2ffa590-ab89-4c27-a923-e26298b512f6",
-        "7e835acf-9568-40c9-9fdb-2cc119c1d242",
-        "a87f4e4e-9106-4a9f-8528-61a0c79752a6",
-        "43e6981b-21ec-4f71-aafc-90b139c0a099",
-        "29fc05b3-66dd-41de-81cd-f99e4961621a",
-        "a9a47c2f-ab13-485a-857f-01d720e5ed48",
-        "792cd9e5-6910-4a52-9781-33e26ce2d042"
-      ],
-      "description": "Baixa job.json + original, lê a timeline salva, monta o lote e prepara a prévia."
-    },
-    {
-      "id": "23278034-0e35-42e7-9a6b-93115e9b7556",
-      "name": "Renderizar lote",
-      "nodeIds": [
-        "dc964b8a-df1c-493e-9688-e16ad4b106ea",
-        "018233df-213c-4463-8dbe-68018d5ef2f9",
-        "55558f90-c705-4d17-89c8-490714904365",
-        "a6acbe48-a19c-407e-b747-ec9f00b5a610",
-        "74832e80-1a4c-4e72-a696-4278750ece17",
-        "7c936f63-79fa-436d-b1dd-00711b38727d",
-        "2095b299-3d7d-4e6b-b975-8da3e7067cbc",
-        "e97d9682-69c3-4db7-a598-20215a39bee2",
-        "d895a60a-4578-4cf3-8698-a85e7eab314c"
-      ],
-      "description": "Loop sequencial: renderiza, sobe para o S3, grava em lyric_renders e trata erros."
-    },
     {
       "id": "16216d48-a7e8-42ca-a55e-5ffa46ddd2bf",
       "name": "Limpar lote anterior",
@@ -2801,6 +3107,186 @@
         },
         "options": {}
       }
+    },
+    {
+      "id": "284e4b45-150d-4530-b037-c554e7db56a8",
+      "name": "Limpar Cancelamento",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        100
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "delete",
+        "bucketName": "lyrics",
+        "fileKey": "={{ \"jobs/\" + $('Ler Job').first().json.jobId + \"/cancel.json\" }}"
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "2984c6bd-82a3-4b1b-8926-824cf993e61f",
+      "name": "Checar Cancelamento",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        900
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "getAll",
+        "bucketName": "lyrics",
+        "returnAll": true,
+        "options": {
+          "folderKey": "={{ \"jobs/\" + $('Ler Job').first().json.jobId + \"/\" }}"
+        }
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "06268dc3-c01d-4407-8683-540e9efa7b25",
+      "name": "Avaliar Cancelamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        900
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "let loopItem = {};\ntry {\n  loopItem = $('Loop: 1 por vez').item.json || {};\n} catch (error) {\n  loopItem = $('Loop: 1 por vez').first().json || {};\n}\nconst items = $input.all().map((item) => item.json || {});\nconst cancel = items.some((item) =>\n  /(^|\\/)cancel\\.json$/.test(String(item.Key || item.key || \"\")),\n);\nreturn { json: { ...loopItem, cancel } };"
+      }
+    },
+    {
+      "id": "655ef011-ea06-4d5e-a2d5-6fe19d01b64b",
+      "name": "Cancelado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2272,
+        900
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.cancel }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "9035b34d-c0ca-46f1-ac85-9fb7989bb788",
+      "name": "Marcar Cancelado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        980
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const job = $('Ler Job').first().json;\njob.status = 'canceled';\njob.canceled_at = new Date().toISOString();\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+      }
+    },
+    {
+      "id": "d758c9db-989b-46a7-92ea-4c20c2a89a43",
+      "name": "Salvar Job Cancelado",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        2752,
+        980
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "eabffed7-495e-4715-9776-d2e7aabcfa5e",
+      "name": "Parar Render",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        980
+      ],
+      "parameters": {
+        "errorType": "errorMessage",
+        "errorMessage": "Render cancelado pelo usuário."
+      }
+    },
+    {
+      "id": "f33dbd6b-4792-407d-b88d-c1a2226324a7",
+      "name": "Marcar Renderizando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2032,
+        100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const job = $('Ler Job').first().json;\njob.status = 'rendering';\ndelete job.canceled_at;\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+      }
+    },
+    {
+      "id": "ff1dd44e-6bbb-4670-a9af-93b34922be2e",
+      "name": "Salvar Job Renderizando",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        100
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
     }
   ],
   "pinData": null,
@@ -2823,6 +3309,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-11-01T03:17:57.876Z",
-  "versionId": "90f2e77e-d661-426d-bf6e-04e16f251b46"
+  "updatedAt": "2026-11-01T04:12:47.540Z",
+  "versionId": "eaac25ac-2427-43dc-97c3-02e74d2004a8"
 }
