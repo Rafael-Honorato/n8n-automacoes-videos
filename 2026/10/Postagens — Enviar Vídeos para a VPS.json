@@ -1,7 +1,7 @@
 {
   "active": true,
   "activeVersion": {
-    "versionId": "54cf1fda-90ad-4497-9281-d49dfbb0e5cb",
+    "versionId": "3f7940e7-d6c5-49a7-a027-a5425925d6c1",
     "workflowId": "7pGgio9yWLTc3wbA",
     "nodes": [
       {
@@ -86,7 +86,7 @@
       {
         "parameters": {
           "operation": "upload",
-          "bucketName": "teste",
+          "bucketName": "videos",
           "fileName": "={{ $json.video_name }}",
           "additionalFields": {}
         },
@@ -128,7 +128,9 @@
             "mappingMode": "defineBelow",
             "value": {
               "status": "uploaded",
-              "video_id": "={{ $('S3 — Baixar do SeaweedFS').item.json.video_id }}"
+              "video_id": "={{ $('S3 — Baixar do SeaweedFS').item.json.video_id }}",
+              "uploaded_at": "={{ $now.setZone('America/Sao_Paulo').toISO() }}",
+              "error": ""
             },
             "matchingColumns": [
               "video_id"
@@ -212,7 +214,7 @@
                 "display": true,
                 "type": "string",
                 "canBeUsedToMatch": true,
-                "removed": true
+                "removed": false
               },
               {
                 "id": "posted_at",
@@ -242,7 +244,7 @@
                 "display": true,
                 "type": "string",
                 "canBeUsedToMatch": true,
-                "removed": true
+                "removed": false
               },
               {
                 "id": "file_size",
@@ -528,6 +530,49 @@
           "mode": "runOnceForAllItems",
           "jsCode": "const raw = String($json.video_name || '').trim();\nconst parts = raw.split('/');\nconst hasBucket = parts.length > 1 && parts[0] !== '';\nconst source_bucket = hasBucket ? parts[0] : 'lyrics';\nconst source_key = hasBucket ? parts.slice(1).join('/') : raw;\nreturn { json: { ...$json, source_bucket, source_key } };"
         }
+      },
+      {
+        "id": "342f569e-236f-4c97-8bed-3030eec556af",
+        "name": "Executar — Manualmente",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -192,
+          176
+        ],
+        "parameters": {}
+      },
+      {
+        "id": "e135b5df-bc86-47bd-bb8a-56e72a2070b9",
+        "name": "Sheets — Ler Fila",
+        "type": "n8n-nodes-base.googleSheets",
+        "typeVersion": 4.7,
+        "position": [
+          -80,
+          176
+        ],
+        "parameters": {
+          "operation": "read",
+          "documentId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+            "cachedResultName": "N8N Controle de Postagens"
+          },
+          "sheetName": {
+            "__rl": true,
+            "mode": "list",
+            "value": "gid=0",
+            "cachedResultName": "11/2026"
+          },
+          "options": {}
+        },
+        "credentials": {
+          "googleSheetsOAuth2Api": {
+            "id": "sAM6GslLDEir4RgL",
+            "name": "Google Sheets account"
+          }
+        }
       }
     ],
     "connections": {
@@ -651,17 +696,39 @@
             }
           ]
         ]
+      },
+      "Executar — Manualmente": {
+        "main": [
+          [
+            {
+              "node": "Sheets — Ler Fila",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sheets — Ler Fila": {
+        "main": [
+          [
+            {
+              "node": "Código — Filtrar Gerados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
     "nodeGroups": [],
     "authors": "n8n n8n (via MCP)",
-    "name": "Renomear fluxo e nós",
-    "description": "Updated nodes: Sheets — Gatilho de Status, Loop — Um Vídeo por Vez, S3 — Baixar do SeaweedFS, S3 — Enviar para o RustFS, Sheets — Marcar Uploaded and 4 more\nConnections: 12 added, 12 removed",
+    "name": "Corrigir formato de uploaded_at",
+    "description": "Updated nodes: Sheets — Marcar Uploaded",
     "autosaved": false,
-    "createdAt": "2026-11-02T17:25:55.626Z",
-    "updatedAt": "2026-11-02T17:25:55.626Z"
+    "createdAt": "2026-11-02T17:41:13.404Z",
+    "updatedAt": "2026-11-02T17:41:13.404Z"
   },
-  "activeVersionId": "54cf1fda-90ad-4497-9281-d49dfbb0e5cb",
+  "activeVersionId": "3f7940e7-d6c5-49a7-a027-a5425925d6c1",
   "connections": {
     "Sheets — Gatilho de Status": {
       "main": [
@@ -783,6 +850,28 @@
           }
         ]
       ]
+    },
+    "Executar — Manualmente": {
+      "main": [
+        [
+          {
+            "node": "Sheets — Ler Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets — Ler Fila": {
+      "main": [
+        [
+          {
+            "node": "Código — Filtrar Gerados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "createdAt": "2026-10-29T18:53:46.783Z",
@@ -878,7 +967,7 @@
     {
       "parameters": {
         "operation": "upload",
-        "bucketName": "teste",
+        "bucketName": "videos",
         "fileName": "={{ $json.video_name }}",
         "additionalFields": {}
       },
@@ -920,7 +1009,9 @@
           "mappingMode": "defineBelow",
           "value": {
             "status": "uploaded",
-            "video_id": "={{ $('S3 — Baixar do SeaweedFS').item.json.video_id }}"
+            "video_id": "={{ $('S3 — Baixar do SeaweedFS').item.json.video_id }}",
+            "uploaded_at": "={{ $now.setZone('America/Sao_Paulo').toISO() }}",
+            "error": ""
           },
           "matchingColumns": [
             "video_id"
@@ -1004,7 +1095,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "posted_at",
@@ -1034,7 +1125,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "file_size",
@@ -1320,6 +1411,49 @@
         "mode": "runOnceForAllItems",
         "jsCode": "const raw = String($json.video_name || '').trim();\nconst parts = raw.split('/');\nconst hasBucket = parts.length > 1 && parts[0] !== '';\nconst source_bucket = hasBucket ? parts[0] : 'lyrics';\nconst source_key = hasBucket ? parts.slice(1).join('/') : raw;\nreturn { json: { ...$json, source_bucket, source_key } };"
       }
+    },
+    {
+      "id": "342f569e-236f-4c97-8bed-3030eec556af",
+      "name": "Executar — Manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        176
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "e135b5df-bc86-47bd-bb8a-56e72a2070b9",
+      "name": "Sheets — Ler Fila",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -80,
+        176
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+          "cachedResultName": "N8N Controle de Postagens"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "11/2026"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sAM6GslLDEir4RgL",
+          "name": "Google Sheets account"
+        }
+      }
     }
   ],
   "pinData": {
@@ -1379,6 +1513,6 @@
   },
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-11-02T17:25:55.610Z",
-  "versionId": "54cf1fda-90ad-4497-9281-d49dfbb0e5cb"
+  "updatedAt": "2026-11-02T17:41:13.401Z",
+  "versionId": "3f7940e7-d6c5-49a7-a027-a5425925d6c1"
 }
