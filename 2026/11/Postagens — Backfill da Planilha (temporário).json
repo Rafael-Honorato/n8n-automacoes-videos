@@ -1,0 +1,409 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Executar — Backfill": {
+      "main": [
+        [
+          {
+            "node": "S3 — Listar SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Listar SeaweedFS": {
+      "main": [
+        [
+          {
+            "node": "Tabela — Ler lyric_renders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela — Ler lyric_renders": {
+      "main": [
+        [
+          {
+            "node": "Código — Preparar Linhas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Preparar Linhas": {
+      "main": [
+        [
+          {
+            "node": "Sheets — Atualizar Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets — Atualizar Fila": {
+      "main": [
+        [
+          {
+            "node": "Sheets — Ler Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets — Ler Fila": {
+      "main": [
+        [
+          {
+            "node": "Código — Resumir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T17:17:15.191Z",
+  "id": "rrHEpTlo7iVDRVCw",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Postagens — Backfill da Planilha (temporário)",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "4eddbfe0-5ff1-4fb6-87eb-c515a39332c1",
+      "name": "Executar — Backfill",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "a05a599f-c7ab-42df-ae4d-e8489b1c87c0",
+      "name": "S3 — Listar SeaweedFS",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "getAll",
+        "bucketName": "lyrics",
+        "returnAll": true,
+        "options": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "d9cbb8dd-4e5e-4be6-873e-2003f849f0c7",
+      "name": "Tabela — Ler lyric_renders",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c",
+          "cachedResultName": "lyric_renders"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": []
+        },
+        "limit": 200
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "4676f2f8-3a5d-417a-aa22-2f37cdb21096",
+      "name": "Código — Preparar Linhas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const s3Items = $('S3 — Listar SeaweedFS').all().map(function (item) { return item.json || {}; });\nconst rows = $('Tabela — Ler lyric_renders').all().map(function (item) { return item.json || {}; });\nconst byKey = {};\nfor (let i = 0; i < rows.length; i++) {\n  const row = rows[i];\n  const key = String(row.s3_key || '').trim();\n  if (key) byKey[key] = row;\n}\nfunction formatDate(value) {\n  if (!value) return '';\n  const d = new Date(value);\n  if (Number.isNaN(d.getTime())) return String(value);\n  const formatted = new Intl.DateTimeFormat('pt-BR', {\n    timeZone: 'America/Sao_Paulo',\n    day: '2-digit',\n    month: '2-digit',\n    year: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false\n  }).format(d);\n  return formatted.replace(',', '');\n}\nconst out = [];\nfor (let i = 0; i < s3Items.length; i++) {\n  const item = s3Items[i];\n  const key = String(item.Key || item.key || '').trim();\n  if (!/\\.mp4$/i.test(key)) continue;\n  if (key.startsWith('jobs/') || key.startsWith('videos_background/') || key.startsWith('front/') || key.startsWith('timelines/')) continue;\n  const row = byKey[key] || {};\n  const bucket = String(row.bucket || 'lyrics');\n  const durationSec = Number(row.duration_seconds || 0);\n  const size = row.file_size_bytes || item.Size || item.size || '';\n  const createdAt = row.createdAt || row.render_finished_at || item.LastModified || item.lastModified || '';\n  out.push({ json: {\n    video_id: key.replace(/\\.mp4$/i, ''),\n    video_name: bucket + '/' + key,\n    url: 'http://localhost:8333/' + bucket + '/' + key,\n    status: 'generated',\n    platform: 's3-local',\n    created_at: formatDate(createdAt),\n    file_size: String(size || ''),\n    duration: durationSec > 0 ? (durationSec / 60).toFixed(2) : ''\n  } });\n}\nreturn out;"
+      }
+    },
+    {
+      "id": "89693af8-aad2-4f95-b5ff-36d0da4943a7",
+      "name": "Sheets — Atualizar Fila",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+          "cachedResultName": "N8N Controle de Postagens"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "11/2026"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "video_id": "={{ $json.video_id }}",
+            "video_name": "={{ $json.video_name }}",
+            "url": "={{ $json.url }}",
+            "status": "={{ $json.status }}",
+            "platform": "={{ $json.platform }}",
+            "created_at": "={{ $json.created_at }}",
+            "file_size": "={{ $json.file_size }}",
+            "duration": "={{ $json.duration }}"
+          },
+          "matchingColumns": [
+            "video_id"
+          ],
+          "schema": [
+            {
+              "id": "video_id",
+              "displayName": "video_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "video_name",
+              "displayName": "video_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "captions",
+              "displayName": "captions",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "captions_ia",
+              "displayName": "captions_ia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "platform",
+              "displayName": "platform",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "uploaded_at",
+              "displayName": "uploaded_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "posted_at",
+              "displayName": "posted_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "error",
+              "displayName": "error",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "file_size",
+              "displayName": "file_size",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "duration",
+              "displayName": "duration",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sAM6GslLDEir4RgL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "1f974fbb-465e-4a87-b7eb-bccb50772582",
+      "name": "Sheets — Ler Fila",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+          "cachedResultName": "N8N Controle de Postagens"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "11/2026"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sAM6GslLDEir4RgL",
+          "name": "Google Sheets account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "df01bfb8-03eb-4e3a-812d-bf4f04fff937",
+      "name": "Código — Resumir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(function (item) { return item.json || {}; });\nconst generated = rows.filter(function (row) { return String(row.status || '').toLowerCase() === 'generated'; });\nreturn [{ json: { total: rows.length, generated: generated.length, sample: generated.slice(0, 5) } }];"
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "rrHEpTlo7iVDRVCw",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-11-02T17:17:15.199Z",
+      "updatedAt": "2026-11-02T17:17:15.199Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-11-02T17:25:48.407Z",
+  "versionId": "9e53c1a7-c613-4252-a146-ae03ce464a39"
+}
