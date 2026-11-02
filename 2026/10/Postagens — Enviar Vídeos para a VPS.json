@@ -918,8 +918,8 @@
       "type": "n8n-nodes-base.googleSheetsTrigger",
       "typeVersion": 1,
       "position": [
-        -192,
-        -64
+        32,
+        352
       ],
       "id": "048b8b5f-d4f9-493a-99d1-87d540ba5f98",
       "name": "Sheets — Gatilho de Status",
@@ -937,8 +937,8 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        32,
-        -64
+        480,
+        304
       ],
       "id": "17f0b3d7-025a-4890-98ca-4409faf4cd6b",
       "name": "Loop — Um Vídeo por Vez"
@@ -951,8 +951,8 @@
       "type": "n8n-nodes-base.s3",
       "typeVersion": 1,
       "position": [
-        448,
-        -48
+        1152,
+        64
       ],
       "id": "d91acbc3-ebc3-420c-bbb6-3eb4222cf65f",
       "name": "S3 — Baixar do SeaweedFS",
@@ -974,8 +974,8 @@
       "type": "n8n-nodes-base.s3",
       "typeVersion": 1,
       "position": [
-        672,
-        -64
+        1376,
+        0
       ],
       "id": "3cfad352-e6f9-42bd-a4fb-572b89caae36",
       "name": "S3 — Enviar para o RustFS",
@@ -1167,7 +1167,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        896,
+        1600,
         -80
       ],
       "id": "d375db0b-d3e5-482e-8a0e-8e5cd113140e",
@@ -1358,8 +1358,8 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        912,
-        176
+        1824,
+        144
       ],
       "id": "a2ac3ed3-12af-4ac7-9b99-c7bba550f5f9",
       "name": "Sheets — Marcar Erro",
@@ -1378,62 +1378,51 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        272,
-        -48
+        704,
+        64
       ],
       "id": "d0eebc81-9a57-43fd-a89a-e6d86de7d89a",
       "name": "Campos — Preparar Item"
     },
     {
+      "parameters": {
+        "jsCode": "return $input.all().filter((item) => {\n  const status = String(item.json?.status || '').trim().toLowerCase();\n  return status === 'generated';\n});"
+      },
       "id": "a9869b34-52ec-449f-a6b0-4fd57fbcb4f4",
       "name": "Código — Filtrar Gerados",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -80,
-        -64
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "return $input.all().filter((item) => {\n  const status = String(item.json?.status || '').trim().toLowerCase();\n  return status === 'generated';\n});"
-      }
+        256,
+        304
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const raw = String($json.video_name || '').trim();\nconst parts = raw.split('/');\nconst hasBucket = parts.length > 1 && parts[0] !== '';\nconst source_bucket = hasBucket ? parts[0] : 'lyrics';\nconst source_key = hasBucket ? parts.slice(1).join('/') : raw;\nreturn { json: { ...$json, source_bucket, source_key } };"
+      },
       "id": "2264e0dc-9767-460d-8a22-1f28167cbd58",
       "name": "Código — Separar Bucket e Chave",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        360,
-        -48
-      ],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const raw = String($json.video_name || '').trim();\nconst parts = raw.split('/');\nconst hasBucket = parts.length > 1 && parts[0] !== '';\nconst source_bucket = hasBucket ? parts[0] : 'lyrics';\nconst source_key = hasBucket ? parts.slice(1).join('/') : raw;\nreturn { json: { ...$json, source_bucket, source_key } };"
-      }
+        928,
+        64
+      ]
     },
     {
+      "parameters": {},
       "id": "342f569e-236f-4c97-8bed-3030eec556af",
       "name": "Executar — Manualmente",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
         -192,
-        176
-      ],
-      "parameters": {}
+        160
+      ]
     },
     {
-      "id": "e135b5df-bc86-47bd-bb8a-56e72a2070b9",
-      "name": "Sheets — Ler Fila",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        -80,
-        176
-      ],
       "parameters": {
-        "operation": "read",
         "documentId": {
           "__rl": true,
           "mode": "list",
@@ -1448,6 +1437,14 @@
         },
         "options": {}
       },
+      "id": "e135b5df-bc86-47bd-bb8a-56e72a2070b9",
+      "name": "Sheets — Ler Fila",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        32,
+        160
+      ],
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "sAM6GslLDEir4RgL",
@@ -1513,6 +1510,6 @@
   },
   "tags": [],
   "triggerCount": 1,
-  "updatedAt": "2026-11-02T17:41:13.401Z",
-  "versionId": "3f7940e7-d6c5-49a7-a027-a5425925d6c1"
+  "updatedAt": "2026-11-02T19:21:32.447Z",
+  "versionId": "322feb62-3c2c-4614-8dc4-13b89251a3b3"
 }
