@@ -1,0 +1,333 @@
+{
+  "active": true,
+  "activeVersion": {
+    "versionId": "399f0e4b-f388-475c-81f3-c3bbea948e4b",
+    "workflowId": "NCmEoD0HPcI11PRF",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "lyric-results",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          -336,
+          16
+        ],
+        "id": "63a80e90-86c4-4317-ae08-9141cd0b3d28",
+        "name": "Webhook — Resultados",
+        "webhookId": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d"
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "value": "rxL2UuUtcY4vm68c",
+            "mode": "list",
+            "cachedResultName": "lyric_renders",
+            "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/rxL2UuUtcY4vm68c"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": []
+          },
+          "limit": 200
+        },
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          -112,
+          16
+        ],
+        "id": "55fb92d2-f3d5-48c8-813f-346d5349a833",
+        "name": "Tabela — Buscar Resultados",
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const rows = $input\n  .all()\n  .map((item) => item.json)\n  .filter((row) => row && (row.id || row.execution_id || row.video_url || row.s3_key));\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  source_video_key: row.source_video_key,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  job_id: row.job_id,\n  sync_revision: row.sync_revision,\n  is_preview: row.is_preview,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          112,
+          16
+        ],
+        "id": "3b83dbad-5858-4b74-af43-f0beb059dc4a",
+        "name": "Código — Preparar Resposta"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          336,
+          16
+        ],
+        "id": "ca451a07-3a1c-4aa4-b1cf-42fd57fc4ec0",
+        "name": "Responder — Resultados"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          -352,
+          -144
+        ],
+        "id": "f9d02d3e-63c9-44da-9dab-7512fe913bed",
+        "name": "Executar — Manualmente"
+      }
+    ],
+    "connections": {
+      "Webhook — Resultados": {
+        "main": [
+          [
+            {
+              "node": "Tabela — Buscar Resultados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tabela — Buscar Resultados": {
+        "main": [
+          [
+            {
+              "node": "Código — Preparar Resposta",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Preparar Resposta": {
+        "main": [
+          [
+            {
+              "node": "Responder — Resultados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Executar — Manualmente": {
+        "main": [
+          [
+            {
+              "node": "Tabela — Buscar Resultados",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [],
+    "authors": "n8n n8n (via MCP)",
+    "name": "Renomear fluxo e nós",
+    "description": "Updated nodes: Tabela — Buscar Resultados, Código — Preparar Resposta, Responder — Resultados, Executar — Manualmente\nConnections: 4 added, 4 removed",
+    "autosaved": false,
+    "createdAt": "2026-11-02T17:25:47.457Z",
+    "updatedAt": "2026-11-02T17:25:47.457Z"
+  },
+  "activeVersionId": "399f0e4b-f388-475c-81f3-c3bbea948e4b",
+  "connections": {
+    "Webhook — Resultados": {
+      "main": [
+        [
+          {
+            "node": "Tabela — Buscar Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela — Buscar Resultados": {
+      "main": [
+        [
+          {
+            "node": "Código — Preparar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Preparar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Responder — Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar — Manualmente": {
+      "main": [
+        [
+          {
+            "node": "Tabela — Buscar Resultados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-28T18:38:28.803Z",
+  "id": "NCmEoD0HPcI11PRF",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Lyrics — API de Resultados",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "parameters": {
+        "path": "lyric-results",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        16
+      ],
+      "id": "63a80e90-86c4-4317-ae08-9141cd0b3d28",
+      "name": "Webhook — Resultados",
+      "webhookId": "a9b8c7d6-e5f4-4a3b-9c2d-1e0f9a8b7c6d"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "rxL2UuUtcY4vm68c",
+          "mode": "list",
+          "cachedResultName": "lyric_renders",
+          "cachedResultUrl": "/projects/2f4v0qEjzP9c2Iup/datatables/rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": []
+        },
+        "limit": 200
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -112,
+        16
+      ],
+      "id": "55fb92d2-f3d5-48c8-813f-346d5349a833",
+      "name": "Tabela — Buscar Resultados",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input\n  .all()\n  .map((item) => item.json)\n  .filter((row) => row && (row.id || row.execution_id || row.video_url || row.s3_key));\n\nrows.sort((a, b) =>\n  String(b.createdAt || '').localeCompare(String(a.createdAt || '')),\n);\n\nconst results = rows.slice(0, 200).map((row) => ({\n  id: row.id,\n  execution_id: row.execution_id,\n  execution_url: row.execution_url,\n  run_index: row.run_index,\n  template_file: row.template_file,\n  template_name: row.template_name,\n  background_file: row.background_file,\n  original_filename: row.original_filename,\n  source_video_key: row.source_video_key,\n  bucket: row.bucket,\n  s3_key: row.s3_key,\n  video_url: row.video_url,\n  file_size_bytes: row.file_size_bytes,\n  duration_seconds: row.duration_seconds,\n  word_count: row.word_count,\n  status: row.status,\n  render_started_at: row.render_started_at,\n  render_finished_at: row.render_finished_at,\n  render_seconds: row.render_seconds,\n  job_started_at: row.job_started_at,\n  job_finished_at: row.job_finished_at,\n  language: row.language,\n  segmentation_mode: row.segmentation_mode,\n  job_id: row.job_id,\n  sync_revision: row.sync_revision,\n  is_preview: row.is_preview,\n  createdAt: row.createdAt,\n}));\n\nreturn [\n  {\n    json: {\n      generatedAt: new Date().toISOString(),\n      count: results.length,\n      results,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        112,
+        16
+      ],
+      "id": "3b83dbad-5858-4b74-af43-f0beb059dc4a",
+      "name": "Código — Preparar Resposta"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        336,
+        16
+      ],
+      "id": "ca451a07-3a1c-4aa4-b1cf-42fd57fc4ec0",
+      "name": "Responder — Resultados"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -144
+      ],
+      "id": "f9d02d3e-63c9-44da-9dab-7512fe913bed",
+      "name": "Executar — Manualmente"
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "NCmEoD0HPcI11PRF",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-28T18:38:28.810Z",
+      "updatedAt": "2026-10-28T18:38:28.810Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-11-02T17:25:47.454Z",
+  "versionId": "399f0e4b-f388-475c-81f3-c3bbea948e4b"
+}
