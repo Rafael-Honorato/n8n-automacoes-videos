@@ -1,0 +1,108 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Executar — Diagnóstico": {
+      "main": [
+        [
+          {
+            "node": "S3 — Listar Buckets (RustFS)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Listar Buckets (RustFS)": {
+      "main": [
+        [
+          {
+            "node": "Código — Resumir Buckets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T17:40:48.953Z",
+  "id": "bguJQGpRSfjwC0MS",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Diagnóstico — Buckets RustFS",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "e52007b2-ad7d-4cea-aff3-9a85c7fd1286",
+      "name": "Executar — Diagnóstico",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "5fb8f765-0601-4386-bb60-7f79bd2b3c53",
+      "name": "S3 — Listar Buckets (RustFS)",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "resource": "bucket",
+        "operation": "getAll",
+        "returnAll": true
+      },
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account RustFS"
+        }
+      }
+    },
+    {
+      "id": "b9ff7063-5e56-4a2a-bc29-ebccbb585184",
+      "name": "Código — Resumir Buckets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(function (item) { return item.json || {}; });\nreturn [{ json: { count: rows.length, names: rows.map(function (row) { return row.Name || row.name || JSON.stringify(row); }) } }];"
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "bguJQGpRSfjwC0MS",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-11-02T17:40:48.959Z",
+      "updatedAt": "2026-11-02T17:40:48.959Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-11-02T17:40:48.953Z",
+  "versionId": "efcd8b3f-bc9a-4f6d-8669-be3f9e81c76e"
+}
