@@ -1,0 +1,120 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Executar — Teste 154MB": {
+      "main": [
+        [
+          {
+            "node": "S3 — Baixar 154MB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Baixar 154MB": {
+      "main": [
+        [
+          {
+            "node": "S3 — Enviar 154MB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T17:49:49.170Z",
+  "id": "AupN2EEe3cWqCGu4",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Diagnóstico — Upload 154MB",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "167f7138-10bd-4e8e-8a37-6da3b322d662",
+      "name": "Executar — Teste 154MB",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "2156f46b-4d94-4036-87e2-ca872194f930",
+      "name": "S3 — Baixar 154MB",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "bucketName": "lyrics",
+        "fileKey": "48f43a4a-cead-4a79-8f4f-e7f5239acad5.mp4",
+        "binaryPropertyName": "data"
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "4a191274-3129-4cf2-a867-3249e7573716",
+      "name": "S3 — Enviar 154MB",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "videos",
+        "fileName": "lyrics/48f43a4a-cead-4a79-8f4f-e7f5239acad5.mp4",
+        "binaryPropertyName": "data",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "eu9IJ12z75eD0q98",
+          "name": "S3 account RustFS"
+        }
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "AupN2EEe3cWqCGu4",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-11-02T17:49:49.180Z",
+      "updatedAt": "2026-11-02T17:49:49.180Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-11-02T17:49:53.499Z",
+  "versionId": "6fc2014f-b689-4051-977d-232519ff22a4"
+}
