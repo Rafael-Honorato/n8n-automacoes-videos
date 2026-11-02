@@ -1,0 +1,3321 @@
+{
+  "active": true,
+  "activeVersion": {
+    "versionId": "3035c148-eb56-4e0b-9eee-959d85a62303",
+    "workflowId": "SVu7iWCc98dcJqqW",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "lyric-render",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "8674efdc-79ef-4ed0-8fc1-a04e2dc53d48",
+        "name": "Webhook — Renderizar Job",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          464
+        ],
+        "webhookId": "4ea4a48c-853e-4109-988b-5d9cfa1b2763"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ status: \"accepted\", jobId: ($json.body?.jobId ?? $json.jobId ?? \"\"), executionId: $execution.id, executionUrl: \"http://localhost:5678/workflow/\" + $workflow.id + \"/executions/\" + $execution.id }) }}",
+          "options": {
+            "responseCode": 200,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Cache-Control",
+                  "value": "no-store"
+                }
+              ]
+            }
+          }
+        },
+        "id": "896dc050-791b-4872-8688-6994072e8e18",
+        "name": "Responder — Render Aceito",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          224,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const payload = $input.first().json.body || $input.first().json;\nconst jobId = String(payload.jobId || payload.job_id || '').trim();\nif (!/^[0-9a-zA-Z_-]{1,64}$/.test(jobId)) throw new Error('jobId inválido.');\nreturn { json: { jobId, preview: Boolean(payload.preview) } };"
+        },
+        "id": "62dbd016-2795-4a3f-a196-4f01af2cfd3e",
+        "name": "Código — Ler Pedido",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "bucketName": "lyrics",
+          "fileKey": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}"
+        },
+        "id": "44c69505-a797-4f59-8fc7-3317f7007b3d",
+        "name": "S3 — Baixar Job",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          672,
+          464
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first();\nconst request = $('Código — Ler Pedido').first().json;\nconst text = input.json.jobText;\nif (!text) throw new Error('job.json não encontrado.');\nconst job = JSON.parse(text);\nconst jobId = String(job.jobId || request.jobId || '').trim();\nconst bucket = 'lyrics-job-' + jobId\n  .toLowerCase()\n  .replace(/[^a-z0-9.-]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 63);\nif (!bucket || bucket === 'lyrics-job-') throw new Error('Não foi possível gerar o bucket do job.');\nreturn { json: { ...job, preview: request.preview, bucket } };"
+        },
+        "id": "7e835acf-9568-40c9-9fdb-2cc119c1d242",
+        "name": "Código — Ler Job",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1120,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "bucketName": "lyrics",
+          "returnAll": true,
+          "options": {
+            "folderKey": "videos_background/"
+          }
+        },
+        "id": "a87f4e4e-9106-4a9f-8528-61a0c79752a6",
+        "name": "S3 — Listar Backgrounds",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          2016,
+          464
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "bucketName": "lyrics",
+          "fileKey": "={{ $(\"Código — Ler Job\").first().json.source.key }}"
+        },
+        "id": "43e6981b-21ec-4f71-aafc-90b139c0a099",
+        "name": "S3 — Baixar Original",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          2240,
+          464
+        ],
+        "executeOnce": true,
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const job = $('Código — Ler Job').first().json || {};\nconst settings = job.settings || {};\nconst jobId = String(job.jobId || $('Código — Ler Pedido').first().json.jobId);\nconst preview = Boolean(job.preview);\nconst templates = (Array.isArray(settings.templates) ? settings.templates : []).map((name) => String(name).trim()).filter(Boolean);\nif (!templates.length) throw new Error('Job sem templates selecionados.');\nconst available = $('S3 — Listar Backgrounds').all().map((item) => item.json.Key || item.json.key || '').filter((key) => /.(mp4|mov|webm|m4v)$/i.test(key)).sort();\nconst mode = String(settings.background_mode || 'none').toLowerCase();\nconst selected = Array.isArray(settings.background_keys) ? settings.background_keys : [];\nlet backgrounds;\nlet renderMode;\nlet varied = false;\nif (mode === 'none') { backgrounds = [null]; renderMode = 'none'; }\nelse if (mode === 'source') {\n  if (!String(job.source?.mime || '').toLowerCase().startsWith('video/')) throw new Error('O job usou o arquivo enviado como fundo, mas o upload é áudio.');\n  backgrounds = [null]; renderMode = 'source';\n}\nelse if (mode === 'folder_all') { backgrounds = available; renderMode = 'fixed'; }\nelse if (mode === 'folder_selected' || mode === 'folder_varied') { backgrounds = selected.filter((key) => available.includes(key)); renderMode = 'fixed'; varied = mode === 'folder_varied'; }\nelse if (mode === 'fixed') { backgrounds = selected.slice(0, 1).filter((key) => available.includes(key)); renderMode = 'fixed'; }\nelse { backgrounds = [null]; renderMode = 'none'; }\nif (!backgrounds.length) throw new Error('Nenhum background encontrado para o job.');\nconst sourceWords = (job.timeline && Array.isArray(job.timeline.words) && job.timeline.words.length ? job.timeline.words : (job.draft && Array.isArray(job.draft.words) ? job.draft.words : []))\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({ word: String(word.word || word.text), start: Number(word.start), end: Number(word.end) }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!sourceWords.length) throw new Error('Job sem palavras válidas na timeline.');\nconst words = sourceWords;\nconst duration = Number(job.source?.duration || job.draft?.duration || (words[words.length - 1].end + 0.5));\nconst syncRevision = Number(job.timeline?.revision || 0);\nconst filename = job.source?.filename || 'input';\nconst jobStartedAt = job.created_at || new Date().toISOString();\nlet selectedTemplates = templates;\nlet selectedBackgrounds = backgrounds;\nif (preview) { selectedTemplates = templates.slice(0, 1); selectedBackgrounds = backgrounds.slice(0, 1); if (!selectedBackgrounds.length) selectedBackgrounds = [null]; }\nconst slugify = (value) => String(value || '').split('/').pop().replace(/.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '-');\nfunction shuffle(list) { const copy = [...list]; for (let i = copy.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; }\nconst buildItem = (background, runIndex, templateName) => {\n  const templateFile = templateName.toLowerCase().endsWith('.html') ? templateName : templateName + '.html';\n  const templateSlug = slugify(templateFile);\n  const backgroundSlug = background ? slugify(background) : renderMode === 'source' ? 'source' : 'nobg';\n  return { json: {\n    run_index: runIndex, background_mode: renderMode,\n    background_file: renderMode === 'source' ? filename : background || '',\n    background_key: background || '', template_file: templateFile, template_name: templateSlug,\n    template_style: '{}', transcript_data: JSON.stringify(words), original_filename: filename,\n    source_video_key: job.source?.key || '', bucket: job.bucket || 'lyrics',\n    s3_key: jobId + '_r' + syncRevision + '_' + runIndex + '_' + backgroundSlug + '_' + templateSlug + '.mp4',\n    duration, word_count: words.length, language: job.lyrics?.language || 'pt',\n    segmentation_mode: job.lyrics?.segmentation_mode || 'lyrics',\n    output_aspect: settings.output_aspect || '9:16', output_quality: settings.output_quality || '1080',\n    fill_mode: settings.fill_mode || 'contain', job_started_at: jobStartedAt, job_id: jobId,\n    sync_revision: String(syncRevision), is_preview: preview ? 'true' : 'false',\n    s3_public_base_url: 'http://localhost:8333',\n  } };\n};\nif (varied) {\n  let pool = shuffle(selectedTemplates); let cursor = 0;\n  return selectedBackgrounds.map((background, index) => { if (cursor >= pool.length) { pool = shuffle(selectedTemplates); cursor = 0; } return buildItem(background, index, pool[cursor++]); });\n}\nreturn selectedBackgrounds.flatMap((background, backgroundIndex) => selectedTemplates.map((templateName, templateIndex) => buildItem(background, backgroundIndex * selectedTemplates.length + templateIndex, templateName)));"
+        },
+        "id": "29fc05b3-66dd-41de-81cd-f99e4961621a",
+        "name": "Código — Preparar Lote",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2464,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const item = $input.first();\nconst original = $('S3 — Baixar Original').first();\nreturn { json: { ...item.json, render_started_at: new Date().toISOString() }, binary: original.binary };"
+        },
+        "id": "018233df-213c-4463-8dbe-68018d5ef2f9",
+        "name": "Código — Reanexar Binário",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4336,
+          288
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "http://hyperframes:3002/render",
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "parameterType": "formBinaryData",
+                "name": "video",
+                "inputDataFieldName": "data"
+              },
+              {
+                "name": "template",
+                "value": "={{ $json.template_file }}"
+              },
+              {
+                "name": "data",
+                "value": "={{ $json.transcript_data }}"
+              },
+              {
+                "name": "duration",
+                "value": "={{ $json.duration }}"
+              },
+              {
+                "name": "style",
+                "value": "={{ $json.template_style }}"
+              },
+              {
+                "name": "background_mode",
+                "value": "={{ $json.background_mode }}"
+              },
+              {
+                "name": "background_key",
+                "value": "={{ $json.background_key }}"
+              },
+              {
+                "name": "output_aspect",
+                "value": "={{ $json.output_aspect }}"
+              },
+              {
+                "name": "output_quality",
+                "value": "={{ $json.output_quality }}"
+              },
+              {
+                "name": "fill_mode",
+                "value": "={{ $json.fill_mode }}"
+              },
+              {
+                "name": "render_engine",
+                "value": "={{ $json.is_preview === \"true\" ? \"ass\" : \"\" }}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            },
+            "timeout": 1800000
+          }
+        },
+        "id": "55558f90-c705-4d17-89c8-490714904365",
+        "name": "HTTP — Renderizar (HyperFrames)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.5,
+        "position": [
+          4560,
+          224
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "action": "generate",
+          "dataPropertyName": "video"
+        },
+        "id": "a6acbe48-a19c-407e-b747-ec9f00b5a610",
+        "name": "Crypto — Nome Temporário",
+        "type": "n8n-nodes-base.crypto",
+        "typeVersion": 2,
+        "position": [
+          4784,
+          144
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "upload",
+          "bucketName": "={{ $('Código — Reanexar Binário').item.json.bucket }}",
+          "fileName": "={{ $('Código — Reanexar Binário').item.json.s3_key }}",
+          "additionalFields": {}
+        },
+        "id": "74832e80-1a4c-4e72-a696-4278750ece17",
+        "name": "S3 — Salvar Vídeo no SeaweedFS",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          5008,
+          144
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const base = $('Código — Reanexar Binário').item.json;\nconst binary = $('HTTP — Renderizar (HyperFrames)').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nlet baseUrl = String(base.s3_public_base_url || 'http://localhost:8333');\nwhile (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\nconst objectKey = String(base.s3_key || '');\nreturn { json: {\n  execution_id: executionId,\n  execution_url: workflowId ? 'http://localhost:5678/workflow/' + workflowId + '/executions/' + executionId : '',\n  run_index: String(base.run_index ?? ''), background_file: base.background_file || '',\n  template_file: base.template_file || '', template_name: base.template_name || '',\n  original_filename: base.original_filename || '', source_video_key: base.source_video_key || '',\n  bucket, s3_key: objectKey, video_url: objectKey ? baseUrl + '/' + bucket + '/' + objectKey : '',\n  file_size_bytes: String(fileData.fileSize ?? ''), duration_seconds: String(base.duration ?? ''),\n  word_count: String(base.word_count ?? ''), status: 'success',\n  render_started_at: startedAt, render_finished_at: finishedAt,\n  render_seconds: Number.isFinite(startedMs) ? ((finishedMs - startedMs) / 1000).toFixed(2) : '',\n  job_started_at: base.job_started_at || '', job_finished_at: finishedAt,\n  language: base.language || '', segmentation_mode: base.segmentation_mode || '',\n  job_id: base.job_id || '', sync_revision: String(base.sync_revision ?? ''),\n  is_preview: base.is_preview || 'false',\n} };"
+        },
+        "id": "7c936f63-79fa-436d-b1dd-00711b38727d",
+        "name": "Código — Preparar Resultado",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5232,
+          80
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "rxL2UuUtcY4vm68c"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "execution_id",
+                "displayName": "execution_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "execution_url",
+                "displayName": "execution_url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "run_index",
+                "displayName": "run_index",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "background_file",
+                "displayName": "background_file",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "template_file",
+                "displayName": "template_file",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "template_name",
+                "displayName": "template_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "original_filename",
+                "displayName": "original_filename",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "source_video_key",
+                "displayName": "source_video_key",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "bucket",
+                "displayName": "bucket",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "s3_key",
+                "displayName": "s3_key",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "video_url",
+                "displayName": "video_url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "file_size_bytes",
+                "displayName": "file_size_bytes",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "duration_seconds",
+                "displayName": "duration_seconds",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "word_count",
+                "displayName": "word_count",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "render_started_at",
+                "displayName": "render_started_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "render_finished_at",
+                "displayName": "render_finished_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "render_seconds",
+                "displayName": "render_seconds",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "job_started_at",
+                "displayName": "job_started_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "job_finished_at",
+                "displayName": "job_finished_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "language",
+                "displayName": "language",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "segmentation_mode",
+                "displayName": "segmentation_mode",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "job_id",
+                "displayName": "job_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "sync_revision",
+                "displayName": "sync_revision",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "is_preview",
+                "displayName": "is_preview",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "2095b299-3d7d-4e6b-b975-8da3e7067cbc",
+        "name": "Tabela — Salvar Resultado",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          5456,
+          0
+        ],
+        "onError": "continueErrorOutput"
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "dc964b8a-df1c-493e-9688-e16ad4b106ea",
+        "name": "Loop — Um Vídeo por Vez",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          3136,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const inputJson = $input.first().json || {};\nlet base = {};\ntry { base = $('Código — Reanexar Binário').item.json || {}; } catch (error) { base = {}; }\nconst source = { ...inputJson, ...base };\nconst uploaded = Boolean(inputJson.video_url && inputJson.s3_key);\nconst now = new Date().toISOString();\nconst startedAt = source.render_started_at || '';\nconst startedMs = Date.parse(startedAt);\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\nconst bucket = source.bucket || 'lyrics';\nreturn { json: {\n  execution_id: executionId,\n  execution_url: workflowId ? 'http://localhost:5678/workflow/' + workflowId + '/executions/' + executionId : '',\n  run_index: String(source.run_index ?? ''), background_file: source.background_file || '',\n  template_file: source.template_file || '', template_name: source.template_name || '',\n  original_filename: source.original_filename || '', source_video_key: source.source_video_key || '',\n  bucket, s3_key: uploaded ? inputJson.s3_key : '', video_url: uploaded ? inputJson.video_url : '',\n  file_size_bytes: uploaded ? String(inputJson.file_size_bytes ?? '') : '',\n  duration_seconds: String(source.duration ?? ''), word_count: String(source.word_count ?? ''),\n  status: 'error', render_started_at: startedAt, render_finished_at: now,\n  render_seconds: Number.isFinite(startedMs) ? ((Date.parse(now) - startedMs) / 1000).toFixed(2) : '',\n  job_started_at: source.job_started_at || '', job_finished_at: now,\n  language: source.language || '', segmentation_mode: source.segmentation_mode || '',\n  job_id: source.job_id || '', sync_revision: String(source.sync_revision ?? ''),\n  is_preview: source.is_preview || 'false',\n} };"
+        },
+        "id": "e97d9682-69c3-4db7-a598-20215a39bee2",
+        "name": "Código — Registrar Erro",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5680,
+          272
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "rxL2UuUtcY4vm68c"
+          },
+          "columns": {
+            "mappingMode": "autoMapInputData",
+            "value": {},
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "execution_id",
+                "displayName": "execution_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "execution_url",
+                "displayName": "execution_url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "run_index",
+                "displayName": "run_index",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "background_file",
+                "displayName": "background_file",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "template_file",
+                "displayName": "template_file",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "template_name",
+                "displayName": "template_name",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "original_filename",
+                "displayName": "original_filename",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "source_video_key",
+                "displayName": "source_video_key",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "bucket",
+                "displayName": "bucket",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "s3_key",
+                "displayName": "s3_key",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "video_url",
+                "displayName": "video_url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "file_size_bytes",
+                "displayName": "file_size_bytes",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "duration_seconds",
+                "displayName": "duration_seconds",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "word_count",
+                "displayName": "word_count",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "status",
+                "displayName": "status",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "render_started_at",
+                "displayName": "render_started_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "render_finished_at",
+                "displayName": "render_finished_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "render_seconds",
+                "displayName": "render_seconds",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "job_started_at",
+                "displayName": "job_started_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "job_finished_at",
+                "displayName": "job_finished_at",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "language",
+                "displayName": "language",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "segmentation_mode",
+                "displayName": "segmentation_mode",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "job_id",
+                "displayName": "job_id",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "sync_revision",
+                "displayName": "sync_revision",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              },
+              {
+                "id": "is_preview",
+                "displayName": "is_preview",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": false
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "d895a60a-4578-4cf3-8698-a85e7eab314c",
+        "name": "Tabela — Salvar Erro",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          5904,
+          576
+        ],
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "operation": "text",
+          "destinationKey": "jobText",
+          "options": {}
+        },
+        "id": "f2ffa590-ab89-4c27-a923-e26298b512f6",
+        "name": "Extrair — Job",
+        "type": "n8n-nodes-base.extractFromFile",
+        "typeVersion": 1.1,
+        "position": [
+          896,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst first = items[0].json || {};\nif (String(first.is_preview) !== 'true') return items;\nlet backgroundMode = String(first.background_mode || 'none');\nlet backgroundKey = first.background_key || '';\nlet backgroundFile = first.background_file || '';\nif (backgroundMode === 'none') {\n  const mime = String($('Código — Ler Job').first().json.source?.mime || '');\n  if (mime.startsWith('video/')) {\n    backgroundMode = 'source';\n  } else {\n    const available = $('S3 — Listar Backgrounds').all()\n      .map((item) => item.json.Key || item.json.key || '')\n      .filter((key) => ['.mp4', '.mov', '.webm', '.m4v'].some((ext) => key.toLowerCase().endsWith(ext)))\n      .sort();\n    if (available.length) {\n      backgroundMode = 'fixed';\n      backgroundKey = available[0];\n      backgroundFile = available[0];\n    }\n  }\n}\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    background_mode: backgroundMode,\n    background_key: backgroundKey,\n    background_file: backgroundFile,\n  },\n}));"
+        },
+        "id": "792cd9e5-6910-4a52-9781-33e26ce2d042",
+        "name": "Código — Ajustar Preview",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2912,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const job = $('Código — Ler Job').first().json || {};\nconst timeline = job.timeline || {};\nconst draft = job.draft || {};\nconst source = (Array.isArray(timeline.words) && timeline.words.length\n  ? timeline.words\n  : (Array.isArray(draft.words) ? draft.words : []));\nconst hasLine = source.some((word) => word && word.line !== null && word.line !== undefined && word.line !== '');\nif (!hasLine && Array.isArray(timeline.lines) && timeline.lines.length) {\n  timeline.lines.forEach((line, lineIndex) => {\n    const start = Number(line.word_start);\n    const end = Number(line.word_end);\n    if (!Number.isFinite(start) || !Number.isFinite(end)) return;\n    for (let index = start; index < end && index < source.length; index += 1) {\n      if (source[index] && (source[index].line === null || source[index].line === undefined)) {\n        source[index] = { ...source[index], line: lineIndex };\n      }\n    }\n  });\n}\nconst words = source\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({\n    word: String(word.word || word.text),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: word.line === null || word.line === undefined || word.line === ''\n      ? null\n      : (Number.isFinite(Number(word.line)) ? Number(word.line) : null),\n  }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!words.length) return $input.all();\nconst transcript = JSON.stringify(words);\nreturn $input.all().map((item) => ({ json: { ...item.json, transcript_data: transcript } }));"
+        },
+        "id": "a9a47c2f-ab13-485a-857f-01d720e5ed48",
+        "name": "Código — Preservar Linhas",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2688,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const job = $('Código — Ler Job').first()?.json || {};\nconst request = $('Código — Ler Pedido').first()?.json || {};\nconst jobId = String(job.jobId || request.jobId || '');\nconst preview = Boolean(job.preview);\nconst executionId = String($execution.id);\nif (preview || !jobId) return [];\nreturn [{ json: { jobId, executionId } }];"
+        },
+        "id": "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+        "name": "Código — Verificar Lote",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3424,
+          432
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "rxL2UuUtcY4vm68c"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "job_id",
+                "keyValue": "={{ $json.jobId }}"
+              }
+            ]
+          },
+          "returnAll": true
+        },
+        "id": "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+        "name": "Tabela — Listar Resultados do Job",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          3648,
+          432
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const info = $('Código — Verificar Lote').first()?.json || {};\nconst jobId = String(info.jobId || '');\nconst executionId = String(info.executionId || '');\nconst rows = $input.all().map((item) => item.json || {});\nconst current = rows.filter((row) => String(row.execution_id || '') === executionId);\nconst currentSuccess = current.filter((row) => row.status === 'success');\nconst currentErrors = current.filter((row) => row.status === 'error').length;\nif (!currentSuccess.length || currentErrors) return [];\nconst currentKeys = new Set(currentSuccess.map((row) => String(row.s3_key || '')).filter(Boolean));\nconst previous = rows.filter((row) => {\n  const rowJob = String(row.job_id || '');\n  const rowExecution = String(row.execution_id || '');\n  const rowPreview = String(row.is_preview || '') === 'true';\n  return rowJob === jobId && rowExecution !== executionId && !rowPreview;\n});\nreturn previous.map((row) => ({ json: {\n  id: row.id,\n  s3_key: String(row.s3_key || ''),\n  bucket: row.bucket || 'lyrics',\n  execution_id: row.execution_id || '',\n} }));"
+        },
+        "id": "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+        "name": "Código — Selecionar Lote Anterior",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3872,
+          432
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "delete",
+          "bucketName": "={{ $json.bucket || 'lyrics' }}",
+          "fileKey": "={{ $json.s3_key || ('sem-arquivo/' + $json.id) }}",
+          "options": {}
+        },
+        "id": "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+        "name": "S3 — Apagar Arquivos Antigos",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          4096,
+          336
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "operation": "deleteRows",
+          "dataTableId": {
+            "__rl": true,
+            "mode": "list",
+            "value": "rxL2UuUtcY4vm68c"
+          },
+          "matchType": "allConditions",
+          "filters": {
+            "conditions": [
+              {
+                "keyValue": "={{ $json.id }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "6842c406-6cfa-42a8-900a-e69a3d6e8432",
+        "name": "Tabela — Apagar Linhas Antigas",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          4096,
+          528
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "delete",
+          "bucketName": "lyrics",
+          "fileKey": "={{ \"jobs/\" + $('Código — Ler Job').first().json.jobId + \"/cancel.json\" }}",
+          "options": {}
+        },
+        "id": "284e4b45-150d-4530-b037-c554e7db56a8",
+        "name": "S3 — Limpar Cancelamento",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1344,
+          464
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "bucketName": "lyrics",
+          "returnAll": true,
+          "options": {
+            "folderKey": "={{ \"jobs/\" + $('Código — Ler Job').first().json.jobId + \"/\" }}"
+          }
+        },
+        "id": "2984c6bd-82a3-4b1b-8926-824cf993e61f",
+        "name": "S3 — Checar Cancelamento",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          3520,
+          384
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "let loopItem = {};\ntry {\n  loopItem = $('Loop — Um Vídeo por Vez').item.json || {};\n} catch (error) {\n  loopItem = $('Loop — Um Vídeo por Vez').first().json || {};\n}\nconst items = $input.all().map((item) => item.json || {});\nconst cancel = items.some((item) =>\n  /(^|\\/)cancel\\.json$/.test(String(item.Key || item.key || \"\")),\n);\nreturn { json: { ...loopItem, cancel } };"
+        },
+        "id": "06268dc3-c01d-4407-8683-540e9efa7b25",
+        "name": "Código — Avaliar Cancelamento",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3888,
+          384
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 1
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.cancel }}",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "true"
+                },
+                "rightValue": ""
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "655ef011-ea06-4d5e-a2d5-6fe19d01b64b",
+        "name": "Se — Cancelado?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          4112,
+          384
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const job = $('Código — Ler Job').first().json;\njob.status = 'canceled';\njob.canceled_at = new Date().toISOString();\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+        },
+        "id": "9035b34d-c0ca-46f1-ac85-9fb7989bb788",
+        "name": "Código — Marcar Cancelado",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4336,
+          672
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+          "additionalFields": {}
+        },
+        "id": "d758c9db-989b-46a7-92ea-4c20c2a89a43",
+        "name": "S3 — Salvar Job Cancelado",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          4560,
+          672
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "errorMessage": "Render cancelado pelo usuário."
+        },
+        "id": "eabffed7-495e-4715-9776-d2e7aabcfa5e",
+        "name": "Parar — Render Cancelado",
+        "type": "n8n-nodes-base.stopAndError",
+        "typeVersion": 1,
+        "position": [
+          4784,
+          672
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const job = $('Código — Ler Job').first().json;\njob.status = 'rendering';\ndelete job.canceled_at;\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+        },
+        "id": "f33dbd6b-4792-407d-b88d-c1a2226324a7",
+        "name": "Código — Marcar Renderizando",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1568,
+          464
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "upload",
+          "bucketName": "lyrics",
+          "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+          "additionalFields": {}
+        },
+        "id": "ff1dd44e-6bbb-4670-a9af-93b34922be2e",
+        "name": "S3 — Salvar Job Renderizando",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1792,
+          464
+        ],
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        }
+      },
+      {
+        "id": "6a142763-cf3e-436f-a24a-e32d49d722e4",
+        "name": "S3 — Criar Bucket do Job",
+        "type": "n8n-nodes-base.s3",
+        "typeVersion": 1,
+        "position": [
+          1904,
+          240
+        ],
+        "parameters": {
+          "resource": "bucket",
+          "operation": "create",
+          "name": "={{ $('Código — Ler Job').first().json.bucket }}",
+          "additionalFields": {
+            "acl": "publicRead"
+          }
+        },
+        "credentials": {
+          "s3": {
+            "id": "VrwLLnraLOyd7d2l",
+            "name": "S3 account SeaweedFS LOCAL"
+          }
+        },
+        "onError": "continueRegularOutput",
+        "alwaysOutputData": true
+      }
+    ],
+    "connections": {
+      "Webhook — Renderizar Job": {
+        "main": [
+          [
+            {
+              "node": "Responder — Render Aceito",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Responder — Render Aceito": {
+        "main": [
+          [
+            {
+              "node": "Código — Ler Pedido",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Ler Pedido": {
+        "main": [
+          [
+            {
+              "node": "S3 — Baixar Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Baixar Job": {
+        "main": [
+          [
+            {
+              "node": "Extrair — Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Ler Job": {
+        "main": [
+          [
+            {
+              "node": "S3 — Limpar Cancelamento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Listar Backgrounds": {
+        "main": [
+          [
+            {
+              "node": "S3 — Baixar Original",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Baixar Original": {
+        "main": [
+          [
+            {
+              "node": "Código — Preparar Lote",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Preparar Lote": {
+        "main": [
+          [
+            {
+              "node": "Código — Preservar Linhas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Reanexar Binário": {
+        "main": [
+          [
+            {
+              "node": "HTTP — Renderizar (HyperFrames)",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Código — Registrar Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP — Renderizar (HyperFrames)": {
+        "main": [
+          [
+            {
+              "node": "Crypto — Nome Temporário",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Código — Registrar Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Crypto — Nome Temporário": {
+        "main": [
+          [
+            {
+              "node": "S3 — Salvar Vídeo no SeaweedFS",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Salvar Vídeo no SeaweedFS": {
+        "main": [
+          [
+            {
+              "node": "Código — Preparar Resultado",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Código — Registrar Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Preparar Resultado": {
+        "main": [
+          [
+            {
+              "node": "Tabela — Salvar Resultado",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Código — Registrar Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tabela — Salvar Resultado": {
+        "main": [
+          [
+            {
+              "node": "Loop — Um Vídeo por Vez",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Código — Registrar Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop — Um Vídeo por Vez": {
+        "main": [
+          [
+            {
+              "node": "Código — Verificar Lote",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "S3 — Checar Cancelamento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Registrar Erro": {
+        "main": [
+          [
+            {
+              "node": "Tabela — Salvar Erro",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tabela — Salvar Erro": {
+        "main": [
+          [
+            {
+              "node": "Loop — Um Vídeo por Vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extrair — Job": {
+        "main": [
+          [
+            {
+              "node": "Código — Ler Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Ajustar Preview": {
+        "main": [
+          [
+            {
+              "node": "Loop — Um Vídeo por Vez",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Preservar Linhas": {
+        "main": [
+          [
+            {
+              "node": "Código — Ajustar Preview",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Verificar Lote": {
+        "main": [
+          [
+            {
+              "node": "Tabela — Listar Resultados do Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Tabela — Listar Resultados do Job": {
+        "main": [
+          [
+            {
+              "node": "Código — Selecionar Lote Anterior",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Selecionar Lote Anterior": {
+        "main": [
+          [
+            {
+              "node": "S3 — Apagar Arquivos Antigos",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Tabela — Apagar Linhas Antigas",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Limpar Cancelamento": {
+        "main": [
+          [
+            {
+              "node": "Código — Marcar Renderizando",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Checar Cancelamento": {
+        "main": [
+          [
+            {
+              "node": "Código — Avaliar Cancelamento",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Avaliar Cancelamento": {
+        "main": [
+          [
+            {
+              "node": "Se — Cancelado?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Se — Cancelado?": {
+        "main": [
+          [
+            {
+              "node": "Código — Marcar Cancelado",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Código — Reanexar Binário",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Marcar Cancelado": {
+        "main": [
+          [
+            {
+              "node": "S3 — Salvar Job Cancelado",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Salvar Job Cancelado": {
+        "main": [
+          [
+            {
+              "node": "Parar — Render Cancelado",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Código — Marcar Renderizando": {
+        "main": [
+          [
+            {
+              "node": "S3 — Salvar Job Renderizando",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Salvar Job Renderizando": {
+        "main": [
+          [
+            {
+              "node": "S3 — Criar Bucket do Job",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "S3 — Criar Bucket do Job": {
+        "main": [
+          [
+            {
+              "node": "S3 — Listar Backgrounds",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "nodeGroups": [
+      {
+        "id": "16216d48-a7e8-42ca-a55e-5ffa46ddd2bf",
+        "name": "Limpar lote anterior",
+        "nodeIds": [
+          "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+          "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+          "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+          "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+          "6842c406-6cfa-42a8-900a-e69a3d6e8432"
+        ],
+        "description": "Se o lote atual terminou sem erros, apaga os arquivos e linhas dos lotes anteriores do mesmo job."
+      }
+    ],
+    "authors": "n8n n8n (via MCP)",
+    "name": "Renomear fluxo e nós",
+    "description": "Updated nodes: Responder — Render Aceito, Código — Ler Pedido, S3 — Baixar Job, Código — Ler Job, S3 — Listar Backgrounds and 29 more\nConnections: 40 added, 40 removed",
+    "autosaved": false,
+    "createdAt": "2026-11-02T17:26:25.102Z",
+    "updatedAt": "2026-11-02T17:26:25.102Z"
+  },
+  "activeVersionId": "3035c148-eb56-4e0b-9eee-959d85a62303",
+  "connections": {
+    "Webhook — Renderizar Job": {
+      "main": [
+        [
+          {
+            "node": "Responder — Render Aceito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder — Render Aceito": {
+      "main": [
+        [
+          {
+            "node": "Código — Ler Pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Ler Pedido": {
+      "main": [
+        [
+          {
+            "node": "S3 — Baixar Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Baixar Job": {
+      "main": [
+        [
+          {
+            "node": "Extrair — Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Ler Job": {
+      "main": [
+        [
+          {
+            "node": "S3 — Limpar Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Listar Backgrounds": {
+      "main": [
+        [
+          {
+            "node": "S3 — Baixar Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Baixar Original": {
+      "main": [
+        [
+          {
+            "node": "Código — Preparar Lote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Preparar Lote": {
+      "main": [
+        [
+          {
+            "node": "Código — Preservar Linhas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Reanexar Binário": {
+      "main": [
+        [
+          {
+            "node": "HTTP — Renderizar (HyperFrames)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Código — Registrar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP — Renderizar (HyperFrames)": {
+      "main": [
+        [
+          {
+            "node": "Crypto — Nome Temporário",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Código — Registrar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crypto — Nome Temporário": {
+      "main": [
+        [
+          {
+            "node": "S3 — Salvar Vídeo no SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Salvar Vídeo no SeaweedFS": {
+      "main": [
+        [
+          {
+            "node": "Código — Preparar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Código — Registrar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Preparar Resultado": {
+      "main": [
+        [
+          {
+            "node": "Tabela — Salvar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Código — Registrar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela — Salvar Resultado": {
+      "main": [
+        [
+          {
+            "node": "Loop — Um Vídeo por Vez",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Código — Registrar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop — Um Vídeo por Vez": {
+      "main": [
+        [
+          {
+            "node": "Código — Verificar Lote",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "S3 — Checar Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Registrar Erro": {
+      "main": [
+        [
+          {
+            "node": "Tabela — Salvar Erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela — Salvar Erro": {
+      "main": [
+        [
+          {
+            "node": "Loop — Um Vídeo por Vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair — Job": {
+      "main": [
+        [
+          {
+            "node": "Código — Ler Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Ajustar Preview": {
+      "main": [
+        [
+          {
+            "node": "Loop — Um Vídeo por Vez",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Preservar Linhas": {
+      "main": [
+        [
+          {
+            "node": "Código — Ajustar Preview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Verificar Lote": {
+      "main": [
+        [
+          {
+            "node": "Tabela — Listar Resultados do Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tabela — Listar Resultados do Job": {
+      "main": [
+        [
+          {
+            "node": "Código — Selecionar Lote Anterior",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Selecionar Lote Anterior": {
+      "main": [
+        [
+          {
+            "node": "S3 — Apagar Arquivos Antigos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Tabela — Apagar Linhas Antigas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Limpar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Código — Marcar Renderizando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Checar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Código — Avaliar Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Avaliar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Se — Cancelado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Se — Cancelado?": {
+      "main": [
+        [
+          {
+            "node": "Código — Marcar Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Código — Reanexar Binário",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Marcar Cancelado": {
+      "main": [
+        [
+          {
+            "node": "S3 — Salvar Job Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Salvar Job Cancelado": {
+      "main": [
+        [
+          {
+            "node": "Parar — Render Cancelado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Código — Marcar Renderizando": {
+      "main": [
+        [
+          {
+            "node": "S3 — Salvar Job Renderizando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Salvar Job Renderizando": {
+      "main": [
+        [
+          {
+            "node": "S3 — Criar Bucket do Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "S3 — Criar Bucket do Job": {
+      "main": [
+        [
+          {
+            "node": "S3 — Listar Backgrounds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-10-31T21:11:29.141Z",
+  "id": "SVu7iWCc98dcJqqW",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Lyrics — Renderizar Job",
+  "nodeGroups": [
+    {
+      "id": "16216d48-a7e8-42ca-a55e-5ffa46ddd2bf",
+      "name": "Limpar lote anterior",
+      "nodeIds": [
+        "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+        "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+        "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+        "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+        "6842c406-6cfa-42a8-900a-e69a3d6e8432"
+      ],
+      "description": "Se o lote atual terminou sem erros, apaga os arquivos e linhas dos lotes anteriores do mesmo job."
+    }
+  ],
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lyric-render",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "8674efdc-79ef-4ed0-8fc1-a04e2dc53d48",
+      "name": "Webhook — Renderizar Job",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        464
+      ],
+      "webhookId": "4ea4a48c-853e-4109-988b-5d9cfa1b2763"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: \"accepted\", jobId: ($json.body?.jobId ?? $json.jobId ?? \"\"), executionId: $execution.id, executionUrl: \"http://localhost:5678/workflow/\" + $workflow.id + \"/executions/\" + $execution.id }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "896dc050-791b-4872-8688-6994072e8e18",
+      "name": "Responder — Render Aceito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        224,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json.body || $input.first().json;\nconst jobId = String(payload.jobId || payload.job_id || '').trim();\nif (!/^[0-9a-zA-Z_-]{1,64}$/.test(jobId)) throw new Error('jobId inválido.');\nreturn { json: { jobId, preview: Boolean(payload.preview) } };"
+      },
+      "id": "62dbd016-2795-4a3f-a196-4f01af2cfd3e",
+      "name": "Código — Ler Pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}"
+      },
+      "id": "44c69505-a797-4f59-8fc7-3317f7007b3d",
+      "name": "S3 — Baixar Job",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        672,
+        464
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first();\nconst request = $('Código — Ler Pedido').first().json;\nconst text = input.json.jobText;\nif (!text) throw new Error('job.json não encontrado.');\nconst job = JSON.parse(text);\nconst jobId = String(job.jobId || request.jobId || '').trim();\nconst bucket = 'lyrics-job-' + jobId\n  .toLowerCase()\n  .replace(/[^a-z0-9.-]+/g, '-')\n  .replace(/^-+|-+$/g, '')\n  .slice(0, 63);\nif (!bucket || bucket === 'lyrics-job-') throw new Error('Não foi possível gerar o bucket do job.');\nreturn { json: { ...job, preview: request.preview, bucket } };"
+      },
+      "id": "7e835acf-9568-40c9-9fdb-2cc119c1d242",
+      "name": "Código — Ler Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "bucketName": "lyrics",
+        "returnAll": true,
+        "options": {
+          "folderKey": "videos_background/"
+        }
+      },
+      "id": "a87f4e4e-9106-4a9f-8528-61a0c79752a6",
+      "name": "S3 — Listar Backgrounds",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        2016,
+        464
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "bucketName": "lyrics",
+        "fileKey": "={{ $(\"Código — Ler Job\").first().json.source.key }}"
+      },
+      "id": "43e6981b-21ec-4f71-aafc-90b139c0a099",
+      "name": "S3 — Baixar Original",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        464
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $('Código — Ler Job').first().json || {};\nconst settings = job.settings || {};\nconst jobId = String(job.jobId || $('Código — Ler Pedido').first().json.jobId);\nconst preview = Boolean(job.preview);\nconst templates = (Array.isArray(settings.templates) ? settings.templates : []).map((name) => String(name).trim()).filter(Boolean);\nif (!templates.length) throw new Error('Job sem templates selecionados.');\nconst available = $('S3 — Listar Backgrounds').all().map((item) => item.json.Key || item.json.key || '').filter((key) => /.(mp4|mov|webm|m4v)$/i.test(key)).sort();\nconst mode = String(settings.background_mode || 'none').toLowerCase();\nconst selected = Array.isArray(settings.background_keys) ? settings.background_keys : [];\nlet backgrounds;\nlet renderMode;\nlet varied = false;\nif (mode === 'none') { backgrounds = [null]; renderMode = 'none'; }\nelse if (mode === 'source') {\n  if (!String(job.source?.mime || '').toLowerCase().startsWith('video/')) throw new Error('O job usou o arquivo enviado como fundo, mas o upload é áudio.');\n  backgrounds = [null]; renderMode = 'source';\n}\nelse if (mode === 'folder_all') { backgrounds = available; renderMode = 'fixed'; }\nelse if (mode === 'folder_selected' || mode === 'folder_varied') { backgrounds = selected.filter((key) => available.includes(key)); renderMode = 'fixed'; varied = mode === 'folder_varied'; }\nelse if (mode === 'fixed') { backgrounds = selected.slice(0, 1).filter((key) => available.includes(key)); renderMode = 'fixed'; }\nelse { backgrounds = [null]; renderMode = 'none'; }\nif (!backgrounds.length) throw new Error('Nenhum background encontrado para o job.');\nconst sourceWords = (job.timeline && Array.isArray(job.timeline.words) && job.timeline.words.length ? job.timeline.words : (job.draft && Array.isArray(job.draft.words) ? job.draft.words : []))\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({ word: String(word.word || word.text), start: Number(word.start), end: Number(word.end) }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!sourceWords.length) throw new Error('Job sem palavras válidas na timeline.');\nconst words = sourceWords;\nconst duration = Number(job.source?.duration || job.draft?.duration || (words[words.length - 1].end + 0.5));\nconst syncRevision = Number(job.timeline?.revision || 0);\nconst filename = job.source?.filename || 'input';\nconst jobStartedAt = job.created_at || new Date().toISOString();\nlet selectedTemplates = templates;\nlet selectedBackgrounds = backgrounds;\nif (preview) { selectedTemplates = templates.slice(0, 1); selectedBackgrounds = backgrounds.slice(0, 1); if (!selectedBackgrounds.length) selectedBackgrounds = [null]; }\nconst slugify = (value) => String(value || '').split('/').pop().replace(/.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]+/g, '-');\nfunction shuffle(list) { const copy = [...list]; for (let i = copy.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [copy[i], copy[j]] = [copy[j], copy[i]]; } return copy; }\nconst buildItem = (background, runIndex, templateName) => {\n  const templateFile = templateName.toLowerCase().endsWith('.html') ? templateName : templateName + '.html';\n  const templateSlug = slugify(templateFile);\n  const backgroundSlug = background ? slugify(background) : renderMode === 'source' ? 'source' : 'nobg';\n  return { json: {\n    run_index: runIndex, background_mode: renderMode,\n    background_file: renderMode === 'source' ? filename : background || '',\n    background_key: background || '', template_file: templateFile, template_name: templateSlug,\n    template_style: '{}', transcript_data: JSON.stringify(words), original_filename: filename,\n    source_video_key: job.source?.key || '', bucket: job.bucket || 'lyrics',\n    s3_key: jobId + '_r' + syncRevision + '_' + runIndex + '_' + backgroundSlug + '_' + templateSlug + '.mp4',\n    duration, word_count: words.length, language: job.lyrics?.language || 'pt',\n    segmentation_mode: job.lyrics?.segmentation_mode || 'lyrics',\n    output_aspect: settings.output_aspect || '9:16', output_quality: settings.output_quality || '1080',\n    fill_mode: settings.fill_mode || 'contain', job_started_at: jobStartedAt, job_id: jobId,\n    sync_revision: String(syncRevision), is_preview: preview ? 'true' : 'false',\n    s3_public_base_url: 'http://localhost:8333',\n  } };\n};\nif (varied) {\n  let pool = shuffle(selectedTemplates); let cursor = 0;\n  return selectedBackgrounds.map((background, index) => { if (cursor >= pool.length) { pool = shuffle(selectedTemplates); cursor = 0; } return buildItem(background, index, pool[cursor++]); });\n}\nreturn selectedBackgrounds.flatMap((background, backgroundIndex) => selectedTemplates.map((templateName, templateIndex) => buildItem(background, backgroundIndex * selectedTemplates.length + templateIndex, templateName)));"
+      },
+      "id": "29fc05b3-66dd-41de-81cd-f99e4961621a",
+      "name": "Código — Preparar Lote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst original = $('S3 — Baixar Original').first();\nreturn { json: { ...item.json, render_started_at: new Date().toISOString() }, binary: original.binary };"
+      },
+      "id": "018233df-213c-4463-8dbe-68018d5ef2f9",
+      "name": "Código — Reanexar Binário",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        288
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hyperframes:3002/render",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "video",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "template",
+              "value": "={{ $json.template_file }}"
+            },
+            {
+              "name": "data",
+              "value": "={{ $json.transcript_data }}"
+            },
+            {
+              "name": "duration",
+              "value": "={{ $json.duration }}"
+            },
+            {
+              "name": "style",
+              "value": "={{ $json.template_style }}"
+            },
+            {
+              "name": "background_mode",
+              "value": "={{ $json.background_mode }}"
+            },
+            {
+              "name": "background_key",
+              "value": "={{ $json.background_key }}"
+            },
+            {
+              "name": "output_aspect",
+              "value": "={{ $json.output_aspect }}"
+            },
+            {
+              "name": "output_quality",
+              "value": "={{ $json.output_quality }}"
+            },
+            {
+              "name": "fill_mode",
+              "value": "={{ $json.fill_mode }}"
+            },
+            {
+              "name": "render_engine",
+              "value": "={{ $json.is_preview === \"true\" ? \"ass\" : \"\" }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 1800000
+        }
+      },
+      "id": "55558f90-c705-4d17-89c8-490714904365",
+      "name": "HTTP — Renderizar (HyperFrames)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        4560,
+        224
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "action": "generate",
+        "dataPropertyName": "video"
+      },
+      "id": "a6acbe48-a19c-407e-b747-ec9f00b5a610",
+      "name": "Crypto — Nome Temporário",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 2,
+      "position": [
+        4784,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "={{ $('Código — Reanexar Binário').item.json.bucket }}",
+        "fileName": "={{ $('Código — Reanexar Binário').item.json.s3_key }}",
+        "additionalFields": {}
+      },
+      "id": "74832e80-1a4c-4e72-a696-4278750ece17",
+      "name": "S3 — Salvar Vídeo no SeaweedFS",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        5008,
+        144
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Código — Reanexar Binário').item.json;\nconst binary = $('HTTP — Renderizar (HyperFrames)').item.binary || {};\nconst fileData = binary.data || {};\nconst finishedAt = new Date().toISOString();\nconst startedAt = base.render_started_at || finishedAt;\nconst startedMs = Date.parse(startedAt);\nconst finishedMs = Date.parse(finishedAt);\nconst bucket = base.bucket || 'lyrics';\nlet baseUrl = String(base.s3_public_base_url || 'http://localhost:8333');\nwhile (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\nconst objectKey = String(base.s3_key || '');\nreturn { json: {\n  execution_id: executionId,\n  execution_url: workflowId ? 'http://localhost:5678/workflow/' + workflowId + '/executions/' + executionId : '',\n  run_index: String(base.run_index ?? ''), background_file: base.background_file || '',\n  template_file: base.template_file || '', template_name: base.template_name || '',\n  original_filename: base.original_filename || '', source_video_key: base.source_video_key || '',\n  bucket, s3_key: objectKey, video_url: objectKey ? baseUrl + '/' + bucket + '/' + objectKey : '',\n  file_size_bytes: String(fileData.fileSize ?? ''), duration_seconds: String(base.duration ?? ''),\n  word_count: String(base.word_count ?? ''), status: 'success',\n  render_started_at: startedAt, render_finished_at: finishedAt,\n  render_seconds: Number.isFinite(startedMs) ? ((finishedMs - startedMs) / 1000).toFixed(2) : '',\n  job_started_at: base.job_started_at || '', job_finished_at: finishedAt,\n  language: base.language || '', segmentation_mode: base.segmentation_mode || '',\n  job_id: base.job_id || '', sync_revision: String(base.sync_revision ?? ''),\n  is_preview: base.is_preview || 'false',\n} };"
+      },
+      "id": "7c936f63-79fa-436d-b1dd-00711b38727d",
+      "name": "Código — Preparar Resultado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5232,
+        80
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "run_index",
+              "displayName": "run_index",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "background_file",
+              "displayName": "background_file",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "template_file",
+              "displayName": "template_file",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "template_name",
+              "displayName": "template_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "original_filename",
+              "displayName": "original_filename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "source_video_key",
+              "displayName": "source_video_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bucket",
+              "displayName": "bucket",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "s3_key",
+              "displayName": "s3_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "video_url",
+              "displayName": "video_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_size_bytes",
+              "displayName": "file_size_bytes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "duration_seconds",
+              "displayName": "duration_seconds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "word_count",
+              "displayName": "word_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "render_started_at",
+              "displayName": "render_started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "render_finished_at",
+              "displayName": "render_finished_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "render_seconds",
+              "displayName": "render_seconds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_started_at",
+              "displayName": "job_started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_finished_at",
+              "displayName": "job_finished_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "segmentation_mode",
+              "displayName": "segmentation_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sync_revision",
+              "displayName": "sync_revision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "is_preview",
+              "displayName": "is_preview",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2095b299-3d7d-4e6b-b975-8da3e7067cbc",
+      "name": "Tabela — Salvar Resultado",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        5456,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "dc964b8a-df1c-493e-9688-e16ad4b106ea",
+      "name": "Loop — Um Vídeo por Vez",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3136,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inputJson = $input.first().json || {};\nlet base = {};\ntry { base = $('Código — Reanexar Binário').item.json || {}; } catch (error) { base = {}; }\nconst source = { ...inputJson, ...base };\nconst uploaded = Boolean(inputJson.video_url && inputJson.s3_key);\nconst now = new Date().toISOString();\nconst startedAt = source.render_started_at || '';\nconst startedMs = Date.parse(startedAt);\nconst executionId = String($execution.id);\nconst workflowId = String($workflow.id || '');\nconst bucket = source.bucket || 'lyrics';\nreturn { json: {\n  execution_id: executionId,\n  execution_url: workflowId ? 'http://localhost:5678/workflow/' + workflowId + '/executions/' + executionId : '',\n  run_index: String(source.run_index ?? ''), background_file: source.background_file || '',\n  template_file: source.template_file || '', template_name: source.template_name || '',\n  original_filename: source.original_filename || '', source_video_key: source.source_video_key || '',\n  bucket, s3_key: uploaded ? inputJson.s3_key : '', video_url: uploaded ? inputJson.video_url : '',\n  file_size_bytes: uploaded ? String(inputJson.file_size_bytes ?? '') : '',\n  duration_seconds: String(source.duration ?? ''), word_count: String(source.word_count ?? ''),\n  status: 'error', render_started_at: startedAt, render_finished_at: now,\n  render_seconds: Number.isFinite(startedMs) ? ((Date.parse(now) - startedMs) / 1000).toFixed(2) : '',\n  job_started_at: source.job_started_at || '', job_finished_at: now,\n  language: source.language || '', segmentation_mode: source.segmentation_mode || '',\n  job_id: source.job_id || '', sync_revision: String(source.sync_revision ?? ''),\n  is_preview: source.is_preview || 'false',\n} };"
+      },
+      "id": "e97d9682-69c3-4db7-a598-20215a39bee2",
+      "name": "Código — Registrar Erro",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5680,
+        272
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "execution_id",
+              "displayName": "execution_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "execution_url",
+              "displayName": "execution_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "run_index",
+              "displayName": "run_index",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "background_file",
+              "displayName": "background_file",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "template_file",
+              "displayName": "template_file",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "template_name",
+              "displayName": "template_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "original_filename",
+              "displayName": "original_filename",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "source_video_key",
+              "displayName": "source_video_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "bucket",
+              "displayName": "bucket",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "s3_key",
+              "displayName": "s3_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "video_url",
+              "displayName": "video_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "file_size_bytes",
+              "displayName": "file_size_bytes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "duration_seconds",
+              "displayName": "duration_seconds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "word_count",
+              "displayName": "word_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "render_started_at",
+              "displayName": "render_started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "render_finished_at",
+              "displayName": "render_finished_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "render_seconds",
+              "displayName": "render_seconds",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_started_at",
+              "displayName": "job_started_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_finished_at",
+              "displayName": "job_finished_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "segmentation_mode",
+              "displayName": "segmentation_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "job_id",
+              "displayName": "job_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "sync_revision",
+              "displayName": "sync_revision",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "is_preview",
+              "displayName": "is_preview",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d895a60a-4578-4cf3-8698-a85e7eab314c",
+      "name": "Tabela — Salvar Erro",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        5904,
+        576
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "destinationKey": "jobText",
+        "options": {}
+      },
+      "id": "f2ffa590-ab89-4c27-a923-e26298b512f6",
+      "name": "Extrair — Job",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (!items.length) return [];\nconst first = items[0].json || {};\nif (String(first.is_preview) !== 'true') return items;\nlet backgroundMode = String(first.background_mode || 'none');\nlet backgroundKey = first.background_key || '';\nlet backgroundFile = first.background_file || '';\nif (backgroundMode === 'none') {\n  const mime = String($('Código — Ler Job').first().json.source?.mime || '');\n  if (mime.startsWith('video/')) {\n    backgroundMode = 'source';\n  } else {\n    const available = $('S3 — Listar Backgrounds').all()\n      .map((item) => item.json.Key || item.json.key || '')\n      .filter((key) => ['.mp4', '.mov', '.webm', '.m4v'].some((ext) => key.toLowerCase().endsWith(ext)))\n      .sort();\n    if (available.length) {\n      backgroundMode = 'fixed';\n      backgroundKey = available[0];\n      backgroundFile = available[0];\n    }\n  }\n}\nreturn items.map((item) => ({\n  json: {\n    ...item.json,\n    background_mode: backgroundMode,\n    background_key: backgroundKey,\n    background_file: backgroundFile,\n  },\n}));"
+      },
+      "id": "792cd9e5-6910-4a52-9781-33e26ce2d042",
+      "name": "Código — Ajustar Preview",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $('Código — Ler Job').first().json || {};\nconst timeline = job.timeline || {};\nconst draft = job.draft || {};\nconst source = (Array.isArray(timeline.words) && timeline.words.length\n  ? timeline.words\n  : (Array.isArray(draft.words) ? draft.words : []));\nconst hasLine = source.some((word) => word && word.line !== null && word.line !== undefined && word.line !== '');\nif (!hasLine && Array.isArray(timeline.lines) && timeline.lines.length) {\n  timeline.lines.forEach((line, lineIndex) => {\n    const start = Number(line.word_start);\n    const end = Number(line.word_end);\n    if (!Number.isFinite(start) || !Number.isFinite(end)) return;\n    for (let index = start; index < end && index < source.length; index += 1) {\n      if (source[index] && (source[index].line === null || source[index].line === undefined)) {\n        source[index] = { ...source[index], line: lineIndex };\n      }\n    }\n  });\n}\nconst words = source\n  .filter((word) => word && (word.word || word.text))\n  .map((word) => ({\n    word: String(word.word || word.text),\n    start: Number(word.start),\n    end: Number(word.end),\n    line: word.line === null || word.line === undefined || word.line === ''\n      ? null\n      : (Number.isFinite(Number(word.line)) ? Number(word.line) : null),\n  }))\n  .filter((word) => Number.isFinite(word.start) && Number.isFinite(word.end) && word.end > word.start)\n  .sort((a, b) => a.start - b.start);\nif (!words.length) return $input.all();\nconst transcript = JSON.stringify(words);\nreturn $input.all().map((item) => ({ json: { ...item.json, transcript_data: transcript } }));"
+      },
+      "id": "a9a47c2f-ab13-485a-857f-01d720e5ed48",
+      "name": "Código — Preservar Linhas",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2688,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $('Código — Ler Job').first()?.json || {};\nconst request = $('Código — Ler Pedido').first()?.json || {};\nconst jobId = String(job.jobId || request.jobId || '');\nconst preview = Boolean(job.preview);\nconst executionId = String($execution.id);\nif (preview || !jobId) return [];\nreturn [{ json: { jobId, executionId } }];"
+      },
+      "id": "d68315f7-baac-4b33-b1ce-aa9f426b61c8",
+      "name": "Código — Verificar Lote",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3424,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "job_id",
+              "keyValue": "={{ $json.jobId }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "9ef63377-12d3-4f9a-9286-6a613020ddf5",
+      "name": "Tabela — Listar Resultados do Job",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3648,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const info = $('Código — Verificar Lote').first()?.json || {};\nconst jobId = String(info.jobId || '');\nconst executionId = String(info.executionId || '');\nconst rows = $input.all().map((item) => item.json || {});\nconst current = rows.filter((row) => String(row.execution_id || '') === executionId);\nconst currentSuccess = current.filter((row) => row.status === 'success');\nconst currentErrors = current.filter((row) => row.status === 'error').length;\nif (!currentSuccess.length || currentErrors) return [];\nconst currentKeys = new Set(currentSuccess.map((row) => String(row.s3_key || '')).filter(Boolean));\nconst previous = rows.filter((row) => {\n  const rowJob = String(row.job_id || '');\n  const rowExecution = String(row.execution_id || '');\n  const rowPreview = String(row.is_preview || '') === 'true';\n  return rowJob === jobId && rowExecution !== executionId && !rowPreview;\n});\nreturn previous.map((row) => ({ json: {\n  id: row.id,\n  s3_key: String(row.s3_key || ''),\n  bucket: row.bucket || 'lyrics',\n  execution_id: row.execution_id || '',\n} }));"
+      },
+      "id": "ae5086a1-7d33-41b4-96f0-b7bb29e022e0",
+      "name": "Código — Selecionar Lote Anterior",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3872,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "bucketName": "={{ $json.bucket || 'lyrics' }}",
+        "fileKey": "={{ $json.s3_key || ('sem-arquivo/' + $json.id) }}",
+        "options": {}
+      },
+      "id": "ba9cf519-cf25-46e0-bbfc-466050c82c73",
+      "name": "S3 — Apagar Arquivos Antigos",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        4096,
+        336
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "deleteRows",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "rxL2UuUtcY4vm68c"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6842c406-6cfa-42a8-900a-e69a3d6e8432",
+      "name": "Tabela — Apagar Linhas Antigas",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        4096,
+        528
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "bucketName": "lyrics",
+        "fileKey": "={{ \"jobs/\" + $('Código — Ler Job').first().json.jobId + \"/cancel.json\" }}",
+        "options": {}
+      },
+      "id": "284e4b45-150d-4530-b037-c554e7db56a8",
+      "name": "S3 — Limpar Cancelamento",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        464
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "bucketName": "lyrics",
+        "returnAll": true,
+        "options": {
+          "folderKey": "={{ \"jobs/\" + $('Código — Ler Job').first().json.jobId + \"/\" }}"
+        }
+      },
+      "id": "2984c6bd-82a3-4b1b-8926-824cf993e61f",
+      "name": "S3 — Checar Cancelamento",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        3520,
+        384
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let loopItem = {};\ntry {\n  loopItem = $('Loop — Um Vídeo por Vez').item.json || {};\n} catch (error) {\n  loopItem = $('Loop — Um Vídeo por Vez').first().json || {};\n}\nconst items = $input.all().map((item) => item.json || {});\nconst cancel = items.some((item) =>\n  /(^|\\/)cancel\\.json$/.test(String(item.Key || item.key || \"\")),\n);\nreturn { json: { ...loopItem, cancel } };"
+      },
+      "id": "06268dc3-c01d-4407-8683-540e9efa7b25",
+      "name": "Código — Avaliar Cancelamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3888,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.cancel }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "655ef011-ea06-4d5e-a2d5-6fe19d01b64b",
+      "name": "Se — Cancelado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        4112,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $('Código — Ler Job').first().json;\njob.status = 'canceled';\njob.canceled_at = new Date().toISOString();\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+      },
+      "id": "9035b34d-c0ca-46f1-ac85-9fb7989bb788",
+      "name": "Código — Marcar Cancelado",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+        "additionalFields": {}
+      },
+      "id": "d758c9db-989b-46a7-92ea-4c20c2a89a43",
+      "name": "S3 — Salvar Job Cancelado",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        4560,
+        672
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Render cancelado pelo usuário."
+      },
+      "id": "eabffed7-495e-4715-9776-d2e7aabcfa5e",
+      "name": "Parar — Render Cancelado",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        4784,
+        672
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const job = $('Código — Ler Job').first().json;\njob.status = 'rendering';\ndelete job.canceled_at;\nconst payload = JSON.stringify(job, null, 2);\nreturn {\n  json: { jobId: job.jobId },\n  binary: {\n    data: {\n      data: Buffer.from(payload, 'utf8').toString('base64'),\n      mimeType: 'application/json',\n      fileName: 'job.json',\n    },\n  },\n};"
+      },
+      "id": "f33dbd6b-4792-407d-b88d-c1a2226324a7",
+      "name": "Código — Marcar Renderizando",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "={{ \"jobs/\" + $json.jobId + \"/job.json\" }}",
+        "additionalFields": {}
+      },
+      "id": "ff1dd44e-6bbb-4670-a9af-93b34922be2e",
+      "name": "S3 — Salvar Job Renderizando",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        464
+      ],
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    },
+    {
+      "id": "6a142763-cf3e-436f-a24a-e32d49d722e4",
+      "name": "S3 — Criar Bucket do Job",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        1904,
+        240
+      ],
+      "parameters": {
+        "resource": "bucket",
+        "operation": "create",
+        "name": "={{ $('Código — Ler Job').first().json.bucket }}",
+        "additionalFields": {
+          "acl": "publicRead"
+        }
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    }
+  ],
+  "pinData": {},
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "binaryMode": "separate"
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "SVu7iWCc98dcJqqW",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-10-31T21:11:29.147Z",
+      "updatedAt": "2026-10-31T21:11:29.147Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2026-11-02T17:26:25.096Z",
+  "versionId": "3035c148-eb56-4e0b-9eee-959d85a62303"
+}
