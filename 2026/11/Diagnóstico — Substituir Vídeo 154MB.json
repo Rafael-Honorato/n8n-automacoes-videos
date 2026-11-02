@@ -1,0 +1,116 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Executar — Substituir 154MB": {
+      "main": [
+        [
+          {
+            "node": "Arquivo — Ler Comprimido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Arquivo — Ler Comprimido": {
+      "main": [
+        [
+          {
+            "node": "S3 — Substituir no SeaweedFS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T17:52:47.025Z",
+  "id": "F3vVENsrdd4SdOnG",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Diagnóstico — Substituir Vídeo 154MB",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "1b24c44a-34c6-4a3b-a4b7-96b89202219d",
+      "name": "Executar — Substituir 154MB",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "10c251eb-bd5a-4910-b82c-d2e9f6552a51",
+      "name": "Arquivo — Ler Comprimido",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "/data/shared/48f43a4a-cead-4a79-8f4f-e7f5239acad5-compressed.mp4",
+        "options": {
+          "dataPropertyName": "data",
+          "fileName": "48f43a4a-cead-4a79-8f4f-e7f5239acad5.mp4",
+          "mimeType": "video/mp4"
+        }
+      }
+    },
+    {
+      "id": "1c24a4a5-fbdc-44c8-af65-2388e63a9fba",
+      "name": "S3 — Substituir no SeaweedFS",
+      "type": "n8n-nodes-base.s3",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "bucketName": "lyrics",
+        "fileName": "48f43a4a-cead-4a79-8f4f-e7f5239acad5.mp4",
+        "binaryPropertyName": "data",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "s3": {
+          "id": "VrwLLnraLOyd7d2l",
+          "name": "S3 account SeaweedFS LOCAL"
+        }
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "F3vVENsrdd4SdOnG",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-11-02T17:52:47.034Z",
+      "updatedAt": "2026-11-02T17:52:47.034Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-11-02T17:52:51.680Z",
+  "versionId": "7e454976-98b4-4aa2-972a-549c11125371"
+}
