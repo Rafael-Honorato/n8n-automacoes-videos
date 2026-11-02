@@ -187,7 +187,10 @@
             "platform": "={{ $json.platform }}",
             "created_at": "={{ $json.created_at }}",
             "file_size": "={{ $json.file_size }}",
-            "duration": "={{ $json.duration }}"
+            "duration": "={{ $json.duration }}",
+            "error": "",
+            "uploaded_at": "",
+            "posted_at": ""
           },
           "matchingColumns": [
             "video_id"
@@ -271,7 +274,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "posted_at",
@@ -281,7 +284,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "created_at",
@@ -301,7 +304,7 @@
               "display": true,
               "type": "string",
               "canBeUsedToMatch": true,
-              "removed": true
+              "removed": false
             },
             {
               "id": "file_size",
@@ -404,6 +407,6 @@
   "staticData": null,
   "tags": [],
   "triggerCount": 0,
-  "updatedAt": "2026-11-02T17:25:48.407Z",
-  "versionId": "9e53c1a7-c613-4252-a146-ae03ce464a39"
+  "updatedAt": "2026-11-02T17:41:17.877Z",
+  "versionId": "4bf41134-854f-4223-a59c-c41b8e5d680c"
 }
