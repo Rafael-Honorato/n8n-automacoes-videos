@@ -1,0 +1,119 @@
+{
+  "active": false,
+  "activeVersion": null,
+  "activeVersionId": null,
+  "connections": {
+    "Executar — Diagnóstico": {
+      "main": [
+        [
+          {
+            "node": "Sheets — Ler Fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets — Ler Fila": {
+      "main": [
+        [
+          {
+            "node": "Código — Resumir Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "createdAt": "2026-11-02T17:42:46.727Z",
+  "id": "O8VRPw2iBnhOCOvA",
+  "isArchived": false,
+  "meta": {
+    "aiBuilderAssisted": true,
+    "builderVariant": "mcp"
+  },
+  "name": "Diagnóstico — Status da Fila",
+  "nodeGroups": [],
+  "nodes": [
+    {
+      "id": "8099d806-21e4-4ba5-a913-54d588e2b540",
+      "name": "Executar — Diagnóstico",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "f05b73fa-3a14-4829-a031-6d5df5878ec6",
+      "name": "Sheets — Ler Fila",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "1FEUAWjo496GBv8RHP_j_fo3WQKWu9tOQbUvUycNZR38",
+          "cachedResultName": "N8N Controle de Postagens"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gid=0",
+          "cachedResultName": "11/2026"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "sAM6GslLDEir4RgL",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "cf2bea8d-4cf4-4bf4-8b12-30dc4ee718d6",
+      "name": "Código — Resumir Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(function (item) { return item.json || {}; });\nconst counts = {};\nfor (let i = 0; i < rows.length; i++) {\n  const s = String(rows[i].status || '').trim() || '(vazio)';\n  counts[s] = (counts[s] || 0) + 1;\n}\nconst uploaded = rows.filter(function (r) { return String(r.status || '') === 'uploaded'; });\nconst errors = rows.filter(function (r) { return String(r.status || '') === 'error'; }).map(function (r) {\n  return { video_id: r.video_id, video_name: r.video_name, error: r.error, file_size: r.file_size };\n});\nreturn [{ json: { total: rows.length, counts: counts, uploaded_sample: uploaded.slice(-3), errors: errors } }];"
+      }
+    }
+  ],
+  "pinData": null,
+  "repo_name": "n8n-automacoes-videos",
+  "repo_owner": "Rafael-Honorato",
+  "repo_path": "",
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "shared": [
+    {
+      "role": "workflow:owner",
+      "workflowId": "O8VRPw2iBnhOCOvA",
+      "projectId": "2f4v0qEjzP9c2Iup",
+      "createdAt": "2026-11-02T17:42:46.735Z",
+      "updatedAt": "2026-11-02T17:42:46.735Z"
+    }
+  ],
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-11-02T17:44:34.178Z",
+  "versionId": "97c40d94-5f94-4978-b6c4-aced79eff8cf"
+}
